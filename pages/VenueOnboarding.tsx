@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
+import React, { useState, useRef } from 'react';
 import { AppView } from '../types';
 
 interface VenueOnboardingProps {
@@ -8,55 +7,18 @@ interface VenueOnboardingProps {
   logout: () => void;
 }
 
-// Tool Definitions for Google Maps Platform integration
-const tools: { functionDeclarations: FunctionDeclaration[] }[] = [{
-  functionDeclarations: [
-    {
-      name: 'places_autocomplete',
-      description: 'Get address suggestions based on partial user input using Google Places API.',
-      parameters: {
-        type: Type.OBJECT,
-        properties: {
-          input: { type: Type.STRING, description: 'The user text to complete.' },
-          session_token: { type: Type.STRING, description: 'A unique token to group autocomplete and details requests for billing.' },
-          country: { type: Type.STRING, description: 'ISO 3166-1 alpha-2 country code to bias results.' }
-        },
-        required: ['input', 'session_token']
-      }
-    },
-    {
-      name: 'place_details',
-      description: 'Fetch full address details and geometry for a specific Place ID.',
-      parameters: {
-        type: Type.OBJECT,
-        properties: {
-          place_id: { type: Type.STRING, description: 'The unique identifier for the place.' },
-          session_token: { type: Type.STRING, description: 'The same token used in the autocomplete call.' }
-        },
-        required: ['place_id', 'session_token']
-      }
-    },
-    {
-      name: 'address_validation',
-      description: 'Validate and standardize an address using Google Address Validation API.',
-      parameters: {
-        type: Type.OBJECT,
-        properties: {
-          address_lines: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'The address components to validate.' },
-          region_code: { type: Type.STRING, description: 'The region code (e.g., US).' }
-        },
-        required: ['address_lines', 'region_code']
-      }
-    }
-  ]
-}];
+type PlaceSuggestion = {
+  id: string;
+  name: string;
+  description: string;
+};
 
 const VenueOnboarding: React.FC<VenueOnboardingProps> = ({ navigate, logout }) => {
   const [venueName, setVenueName] = useState('');
   const [venueType, setVenueType] = useState('Club');
   const [capacity, setCapacity] = useState(250);
   const [address, setAddress] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [sessionToken] = useState(() => Math.random().toString(36).substring(7));
@@ -65,7 +27,7 @@ const VenueOnboarding: React.FC<VenueOnboardingProps> = ({ navigate, logout }) =
 
   const searchTimeout = useRef<number | null>(null);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const hasApi = true;
 
   const handleAddressSearch = async (val: string) => {
     setAddress(val);
@@ -81,63 +43,83 @@ const VenueOnboarding: React.FC<VenueOnboardingProps> = ({ navigate, logout }) =
 
     searchTimeout.current = window.setTimeout(async () => {
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `Find address suggestions for: "${val}"`,
-          config: {
-            tools,
-            systemInstruction: `You are an address capture assistant. Use places_autocomplete to find suggestions. Bias results to the US. Return up to 5 results. Only use tool calls.`
-          },
-        });
+        const url = new URL('/api/places_autocomplete', window.location.origin);
+        url.searchParams.set('input', val);
+        url.searchParams.set('session_token', sessionToken);
+        url.searchParams.set('country', 'us');
 
-        // In a real environment, the model returns tool calls. 
-        // For this UI demo, if the model "successfully" triggered the tool, 
-        // we'd execute the actual Google API call here.
-        // Since we are simulating the "orchestration", we'll simulate the tool response.
-        
-        const toolCall = response.functionCalls?.[0];
-        if (toolCall && toolCall.name === 'places_autocomplete') {
-          // Executing the "tool" locally for demo purposes with high-fidelity feel
-          const mockSuggestions = [
-            { id: 'p1', name: val + ' St, New York, NY', description: val + ' Street, New York, NY 10001' },
-            { id: 'p2', name: 'Blue Note ' + val, description: '131 W 3rd St, New York, NY 10012' },
-          ];
-          setSuggestions(mockSuggestions);
-          setShowSuggestions(true);
-        }
+        const resp = await fetch(url.toString());
+        const data = await resp.json();
+
+        const predictions = Array.isArray(data?.predictions) ? data.predictions : [];
+        const nextSuggestions: PlaceSuggestion[] = predictions.slice(0, 5).map((p: any) => ({
+          id: String(p?.place_id ?? ''),
+          name: String(p?.structured_formatting?.main_text ?? p?.description ?? ''),
+          description: String(p?.description ?? ''),
+        })).filter((s: PlaceSuggestion) => Boolean(s.id) && Boolean(s.description));
+
+        setSuggestions(nextSuggestions);
+        setShowSuggestions(nextSuggestions.length > 0);
       } catch (err) {
         console.error(err);
+        setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setIsSearching(false);
       }
     }, 500);
   };
 
-  const selectPlace = async (place: any) => {
+  const selectPlace = async (place: PlaceSuggestion) => {
     setIsSearching(true);
     setShowSuggestions(false);
     setAddress(place.description);
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Get full details for place ID: ${place.id}`,
-        config: {
-          tools,
-          systemInstruction: `Use place_details to fetch formatted_address and components. Then use address_validation to confirm. Summarize the standardized address for the user.`
-        },
-      });
+      const detailsUrl = new URL('/api/place_details', window.location.origin);
+      detailsUrl.searchParams.set('place_id', place.id);
+      detailsUrl.searchParams.set('session_token', sessionToken);
 
-      // Simulation of validation flow
+      const detailsResp = await fetch(detailsUrl.toString());
+      const detailsData = await detailsResp.json();
+      const formatted = String(detailsData?.result?.formatted_address ?? place.description);
+      const comps: any[] = Array.isArray(detailsData?.result?.address_components)
+        ? detailsData.result.address_components
+        : [];
+
+      const byType = (t: string) => comps.find((c) => Array.isArray(c?.types) && c.types.includes(t));
+
+      const streetNumber = byType('street_number')?.long_name ?? '';
+      const route = byType('route')?.long_name ?? '';
+      const street = `${streetNumber} ${route}`.trim();
+      const city = byType('locality')?.long_name ?? byType('sublocality')?.long_name ?? '';
+      const state = byType('administrative_area_level_1')?.short_name ?? '';
+      const postal = byType('postal_code')?.long_name ?? '';
+      const country = byType('country')?.long_name ?? '';
+
+      const validationResp = await fetch('/api/address_validation', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          address_lines: [formatted],
+          region_code: 'US',
+        }),
+      });
+      const validationData = await validationResp.json();
+
+      const validatedFormatted =
+        validationData?.result?.address?.formattedAddress ??
+        formatted;
+
       setValidatedAddress({
-        formatted: place.description,
+        formatted: validatedFormatted,
         components: {
-          street: "131 W 3rd St",
-          city: "New York",
-          state: "NY",
-          postal: "10012",
-          country: "USA"
-        }
+          street: street || '',
+          city: city || '',
+          state: state || '',
+          postal: postal || '',
+          country: country || '',
+        },
       });
       if (!venueName) setVenueName(place.name.replace(' St, New York, NY', ''));
     } catch (err) {
