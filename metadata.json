@@ -1,0 +1,7 @@
+{
+  "name": "Tempo Gig Manager",
+  "description": "A high-fidelity music venue management and artist booking platform featuring gig management, artist ranking, and a dedicated gig marketplace.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

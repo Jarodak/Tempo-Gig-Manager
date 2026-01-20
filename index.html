@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Tempo Gig Manager</title>
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon-192.svg" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.svg" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#7f0df2",
+            "accent-cyan": "#06B6D4",
+            "background-dark": "#0a0a0a",
+            "surface-dark": "#1a1a1a",
+            "border-dark": "#3b3c54",
+          },
+          fontFamily: {
+            "display": ["Spline Sans", "sans-serif"],
+            "body": ["Inter", "sans-serif"]
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --safe-area-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #0a0a0a;
+      overflow-x: hidden;
+      /* Prevent elastic bounce on iOS if possible, or just style for it */
+      overscroll-behavior-y: none;
+    }
+    /* Mobile app resets */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .fill-1 {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Native-like transitions for state changes */
+    .view-transition {
+      transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Safe Area Padding */
+    .pb-safe {
+      padding-bottom: calc(var(--safe-area-bottom) + 80px);
+    }
+    .bottom-safe {
+      bottom: var(--safe-area-bottom);
+    }
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0"
+  }
+}
+</script>
+</head>
+<body class="text-white">
+  <div id="root"></div>
+</body>
+</html>
