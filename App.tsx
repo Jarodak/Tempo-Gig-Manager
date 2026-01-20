@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, UserRole } from './types';
+import { getCurrentUser, setCurrentUser, clearCurrentUser } from './auth';
 import VenueDashboard from './pages/VenueDashboard';
 import GigFinder from './pages/GigFinder';
 import CreateGig from './pages/CreateGig';
@@ -27,9 +28,23 @@ const App: React.FC = () => {
   const [activeDay, setActiveDay] = useState<number>(13); 
   const [isInvited, setIsInvited] = useState<boolean>(false);
 
-  const handleLogin = (selectedRole: UserRole) => {
+  // Restore auth state on mount
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      setRole(user.role);
+      if (user.role === UserRole.VENUE) {
+        setCurrentView(AppView.VENUE_DASHBOARD);
+      } else {
+        setCurrentView(AppView.ARTIST_FEED);
+      }
+    }
+  }, []);
+
+  const handleLogin = (selectedRole: UserRole, email?: string) => {
     setRole(selectedRole);
     setIsInvited(false);
+    setCurrentUser({ role: selectedRole, email });
     if (selectedRole === UserRole.VENUE) {
       setCurrentView(AppView.VENUE_DASHBOARD);
     } else {
@@ -37,8 +52,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSignup = (selectedRole: UserRole) => {
+  const handleSignup = (selectedRole: UserRole, email?: string, name?: string) => {
     setRole(selectedRole);
+    setCurrentUser({ role: selectedRole, email, name });
     if (selectedRole === UserRole.VENUE) {
       setCurrentView(AppView.VENUE_ONBOARDING);
     } else {
@@ -50,6 +66,7 @@ const App: React.FC = () => {
     setRole(UserRole.NONE);
     setIsInvited(false);
     setCurrentView(AppView.LANDING);
+    clearCurrentUser();
   };
 
   const renderView = () => {
@@ -68,9 +85,9 @@ const App: React.FC = () => {
       case AppView.LOGIN:
         return <Login navigate={(v) => setCurrentView(v)} onAuthSuccess={handleLogin} />;
       case AppView.SIGNUP_VENUE:
-        return <SignupVenue navigate={(v) => setCurrentView(v)} onAuthSuccess={() => handleSignup(UserRole.VENUE)} />;
+        return <SignupVenue navigate={(v) => setCurrentView(v)} onAuthSuccess={(email, name) => handleSignup(UserRole.VENUE, email, name)} />;
       case AppView.SIGNUP_ARTIST:
-        return <SignupArtist navigate={(v) => setCurrentView(v)} onAuthSuccess={() => handleSignup(UserRole.ARTIST)} />;
+        return <SignupArtist navigate={(v) => setCurrentView(v)} onAuthSuccess={(email, name) => handleSignup(UserRole.ARTIST, email, name)} />;
       
       // Venue Views
       case AppView.VENUE_ONBOARDING:

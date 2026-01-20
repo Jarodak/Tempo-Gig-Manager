@@ -4,7 +4,7 @@ import { AppView, UserRole } from '../types';
 
 interface LoginProps {
   navigate: (view: AppView) => void;
-  onAuthSuccess: (role: UserRole) => void;
+  onAuthSuccess: (role: UserRole, email: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ navigate, onAuthSuccess }) => {
@@ -30,7 +30,7 @@ const Login: React.FC<LoginProps> = ({ navigate, onAuthSuccess }) => {
       setIsSubmitting(true);
       setTimeout(() => {
         setIsSubmitting(false);
-        onAuthSuccess(role);
+        onAuthSuccess(role, email);
       }, 1000);
     }
   };

@@ -60,7 +60,8 @@ export const handler = async (event) => {
     `;
 
     return json(201, { gig: row });
-  } catch (_err) {
-    return json(500, { error: 'Failed to create gig' });
+  } catch (err) {
+    console.error('gigs_create error:', err);
+    return json(500, { error: 'Failed to create gig', details: err.message });
   }
 };

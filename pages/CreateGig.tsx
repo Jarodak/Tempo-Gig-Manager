@@ -18,7 +18,7 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [title, setTitle] = useState('');
   const [budget, setBudget] = useState('');
   const [requirements, setRequirements] = useState('');
-  const [errors, setErrors] = useState<{ title?: string; budget?: string }>({});
+  const [errors, setErrors] = useState<{ title?: string; budget?: string; submit?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
@@ -62,6 +62,7 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
     if (!validate()) return;
     try {
       setIsSubmitting(true);
+      setErrors({});
       await createGig({
         title,
         venue: 'Main Stage',
@@ -78,8 +79,8 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
         isTipsOnly,
       });
       navigate(AppView.VENUE_DASHBOARD);
-    } catch (_err) {
-      setIsSubmitting(false);
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : 'Failed to create gig' });
     } finally {
       setIsSubmitting(false);
     }
@@ -330,6 +331,15 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
         </div>
 
         <div className="h-20"></div>
+
+        {errors.submit && (
+          <div className="px-5">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-center">
+              <span className="material-symbols-outlined text-red-500 text-2xl mb-2">error</span>
+              <p className="text-red-500 text-xs font-black uppercase tracking-widest">{errors.submit}</p>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Sticky Mobile Footer */}

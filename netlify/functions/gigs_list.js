@@ -25,7 +25,8 @@ export const handler = async () => {
     `;
 
     return json(200, { gigs });
-  } catch (_err) {
-    return json(500, { error: 'Failed to list gigs' });
+  } catch (err) {
+    console.error('gigs_list error:', err);
+    return json(500, { error: 'Failed to fetch gigs', details: err.message });
   }
 };

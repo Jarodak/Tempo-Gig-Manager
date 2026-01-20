@@ -33,3 +33,12 @@ export const createGig = async (gig: Partial<Gig>): Promise<Gig> => {
   });
   return data.gig;
 };
+
+export const testConnection = async (): Promise<{ ok: boolean; error?: string }> => {
+  try {
+    await apiFetch('/api/gigs_list');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+};

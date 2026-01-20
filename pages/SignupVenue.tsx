@@ -4,18 +4,20 @@ import { AppView } from '../types';
 
 interface SignupProps {
   navigate: (view: AppView) => void;
-  onAuthSuccess: () => void;
+  onAuthSuccess: (email: string, name: string) => void;
 }
 
 const SignupVenue: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
+  const [name, setName] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string; name?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
-    const e: { email?: string; password?: string; confirm?: string } = {};
+    const e: { email?: string; password?: string; confirm?: string; name?: string } = {};
+    if (!name.trim()) e.name = "Venue name is required";
     if (!email.trim()) e.email = "Business email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
     
@@ -33,7 +35,7 @@ const SignupVenue: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
       setIsSubmitting(true);
       setTimeout(() => {
         setIsSubmitting(false);
-        onAuthSuccess();
+        onAuthSuccess(email, name);
       }, 1200);
     }
   };

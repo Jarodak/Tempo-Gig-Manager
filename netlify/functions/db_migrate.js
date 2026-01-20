@@ -71,6 +71,7 @@ export const handler = async (event) => {
 
     return json(200, { ok: true });
   } catch (err) {
-    return json(500, { error: 'Migration failed' });
+    console.error('Migration error:', err);
+    return json(500, { error: 'Migration failed', details: err.message });
   }
 };
