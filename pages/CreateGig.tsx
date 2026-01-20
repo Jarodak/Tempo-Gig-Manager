@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { AppView } from '../types';
+import { createGig } from '../apiClient';
 
 interface CreateGigProps {
   navigate: (view: AppView) => void;
@@ -11,6 +12,7 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [isTipsOnly, setIsTipsOnly] = useState(false);
   const [frequency, setFrequency] = useState('weekly');
   const [selectedDays, setSelectedDays] = useState<string[]>(['F']);
+  const [genre, setGenre] = useState('Jazz');
   
   // Form State
   const [title, setTitle] = useState('');
@@ -56,14 +58,30 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePublish = () => {
-    if (validate()) {
+  const handlePublish = async () => {
+    if (!validate()) return;
+    try {
       setIsSubmitting(true);
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        navigate(AppView.VENUE_DASHBOARD);
-      }, 1000);
+      await createGig({
+        title,
+        venue: 'Main Stage',
+        location: 'NYC',
+        date: 'Oct 14',
+        time: '9PM',
+        price: isTipsOnly ? 'Tips Only' : `$${budget}`,
+        genre,
+        isVerified: true,
+        image: '',
+        isRecurring,
+        frequency: isRecurring ? (frequency as any) : undefined,
+        status: 'draft',
+        isTipsOnly,
+      });
+      navigate(AppView.VENUE_DASHBOARD);
+    } catch (_err) {
+      setIsSubmitting(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -296,7 +314,11 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Genre Tag</label>
             <div className="relative">
-              <select className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white">
+              <select
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white"
+              >
                 <option>Jazz</option>
                 <option>Rock</option>
                 <option>Indie</option>

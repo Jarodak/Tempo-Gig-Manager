@@ -1,42 +1,38 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AppView, Gig } from '../types';
+import { getGigs } from '../apiClient';
 
 interface GigFinderProps {
   navigate: (view: AppView) => void;
   logout: () => void;
 }
 
-const GIGS: Gig[] = [
-  {
-    id: '1',
-    title: 'The Blue Note',
-    venue: 'Jazz Club',
-    location: 'New York, NY',
-    date: 'Oct 24',
-    time: '9:00 PM',
-    price: '$1,200',
-    genre: 'Jazz',
-    isVerified: true,
-    image: 'https://picsum.photos/seed/gig1/800/600'
-  },
-  {
-    id: 't1',
-    title: 'Basement Sessions',
-    venue: 'The Underpass',
-    location: 'Brooklyn, NY',
-    date: 'Oct 28',
-    time: '10:00 PM',
-    price: 'For Tips',
-    genre: 'Alternative',
-    isVerified: false,
-    isTipsOnly: true,
-    image: 'https://picsum.photos/seed/gig4/800/600'
-  },
-];
-
 const GigFinder: React.FC<GigFinderProps> = ({ navigate, logout }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [gigs, setGigs] = useState<Gig[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGigs()
+      .then((data) => {
+        if (!cancelled) setGigs(data);
+      })
+      .catch(() => {
+        if (!cancelled) setGigs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredGigs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return gigs;
+    return gigs.filter((g) =>
+      [g.title, g.venue, g.location, g.genre].some((v) => String(v ?? '').toLowerCase().includes(q))
+    );
+  }, [gigs, searchQuery]);
 
   return (
     <div className="flex-1 pb-safe overflow-y-auto hide-scrollbar text-white">
@@ -84,9 +80,9 @@ const GigFinder: React.FC<GigFinderProps> = ({ navigate, logout }) => {
 
         <div className="px-5 space-y-6">
           <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Public Listings</h3>
-          {GIGS.map((gig) => (
+          {filteredGigs.map((gig) => (
             <div key={gig.id} className="rounded-[2.5rem] overflow-hidden bg-surface-dark border border-white/5 active:scale-[0.98] transition-all">
-              <div className="relative aspect-[4/3] bg-center bg-cover" style={{ backgroundImage: `url(${gig.image})` }}>
+              <div className="relative aspect-[4/3] bg-center bg-cover" style={{ backgroundImage: `url(${gig.image || 'https://picsum.photos/seed/gig_fallback/800/600'})` }}>
                 <div className="absolute inset-0 bg-gradient-to-t from-surface-dark via-transparent opacity-80"></div>
                 <div className="absolute bottom-6 left-6 right-6">
                     <h3 className="text-white text-3xl font-black tracking-tighter">{gig.title}</h3>

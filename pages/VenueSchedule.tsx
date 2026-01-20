@@ -1,24 +1,19 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AppView, Gig } from '../types';
+import { getGigs } from '../apiClient';
 
 interface VenueScheduleProps {
   navigate: (view: AppView) => void;
   initialDay?: number;
 }
 
-const SCHEDULE: Gig[] = [
-  { id: 's1', title: 'Neon Nights', venue: 'Main Stage', location: 'NYC', date: 'Oct 14', time: '9PM', price: '$800', genre: 'Electronic', isVerified: true, image: '', status: 'confirmed' },
-  { id: 's2', title: 'Acoustic Sunday', venue: 'Lounge', location: 'NYC', date: 'Oct 15', time: '6PM', price: '$200', genre: 'Acoustic', isVerified: true, image: '', status: 'pending' },
-  { id: 's3', title: 'Heavy Metal Monday', venue: 'Main Stage', location: 'NYC', date: 'Oct 16', time: '8PM', price: '$400', genre: 'Metal', isVerified: true, image: '', status: 'draft' },
-  { id: 's4', title: 'Jazz Jam', venue: 'Bar', location: 'NYC', date: 'Oct 21', time: '7PM', price: 'Tips Only', isTipsOnly: true, genre: 'Jazz', isVerified: true, image: '', status: 'confirmed' },
-];
-
 const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDay, setSelectedDay] = useState<number>(initialDay || 13);
+  const [gigs, setGigs] = useState<Gig[]>([]);
 
   useEffect(() => {
     if (initialDay && initialDay !== 13) {
@@ -26,6 +21,20 @@ const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) =
       setViewMode('calendar');
     }
   }, [initialDay]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGigs()
+      .then((data) => {
+        if (!cancelled) setGigs(data);
+      })
+      .catch(() => {
+        if (!cancelled) setGigs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSync = () => {
     setIsSyncing(true);
@@ -39,8 +48,8 @@ const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) =
   // Map of days to their gig status for dot rendering
   const gigMap = useMemo(() => {
     const map: Record<number, 'confirmed' | 'pending'> = {};
-    SCHEDULE.forEach(gig => {
-      const day = parseInt(gig.date.split(' ')[1]);
+    gigs.forEach(gig => {
+      const day = parseInt(String(gig.date ?? '').split(' ')[1]);
       if (!isNaN(day)) {
         // Confirmed takes priority for the color
         if (gig.status === 'confirmed' || map[day] === undefined) {
@@ -49,7 +58,7 @@ const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) =
       }
     });
     return map;
-  }, []);
+  }, [gigs]);
 
   const daysInMonth = 31;
 
@@ -83,7 +92,7 @@ const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) =
     return cells;
   };
 
-  const selectedGigs = SCHEDULE.filter(g => parseInt(g.date.split(' ')[1]) === selectedDay);
+  const selectedGigs = gigs.filter(g => parseInt(String(g.date ?? '').split(' ')[1]) === selectedDay);
 
   return (
     <div className="flex-1 flex flex-col bg-background-dark h-screen overflow-hidden pb-safe">
@@ -138,7 +147,7 @@ const VenueSchedule: React.FC<VenueScheduleProps> = ({ navigate, initialDay }) =
             {['This Week', 'Next Week'].map(group => (
               <div key={group} className="space-y-4">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 ml-2">{group}</h3>
-                {SCHEDULE.map(gig => (
+                {gigs.map(gig => (
                   <div key={gig.id} className="bg-surface-dark border border-white/5 rounded-3xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all">
                     <div className={`size-14 rounded-2xl flex flex-col items-center justify-center border ${
                       gig.status === 'confirmed' ? 'border-green-500/30 bg-green-500/5 text-green-500' :

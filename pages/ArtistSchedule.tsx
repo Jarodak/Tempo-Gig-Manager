@@ -1,26 +1,36 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AppView, Gig } from '../types';
+import { getGigs } from '../apiClient';
 
 interface ArtistScheduleProps {
   navigate: (view: AppView) => void;
 }
 
-const ARTIST_GIGS: Gig[] = [
-  { id: 'ag1', title: 'Neon Nights', venue: 'Moxy Chelsea', location: 'NYC', date: 'Oct 14', time: '9PM', price: '$800', genre: 'Electronic', isVerified: true, image: '', status: 'confirmed' },
-  { id: 'ag2', title: 'Jazz Jam Night', venue: 'The Blue Note', location: 'NYC', date: 'Oct 21', time: '7PM', price: '$200', genre: 'Jazz', isVerified: true, image: '', status: 'applied' },
-  { id: 'ag3', title: 'Basement Sessions', venue: 'The Underpass', location: 'Brooklyn', date: 'Oct 28', time: '10PM', price: 'Tips Only', isTipsOnly: true, genre: 'Alternative', isVerified: true, image: '', status: 'confirmed' },
-];
-
 const ArtistSchedule: React.FC<ArtistScheduleProps> = ({ navigate }) => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDay, setSelectedDay] = useState<number>(14);
+  const [gigs, setGigs] = useState<Gig[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGigs()
+      .then((data) => {
+        if (!cancelled) setGigs(data);
+      })
+      .catch(() => {
+        if (!cancelled) setGigs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Map of days to their gig status for dot rendering
   const gigMap = useMemo(() => {
     const map: Record<number, 'confirmed' | 'applied'> = {};
-    ARTIST_GIGS.forEach(gig => {
-      const day = parseInt(gig.date.split(' ')[1]);
+    gigs.forEach(gig => {
+      const day = parseInt(String(gig.date ?? '').split(' ')[1]);
       if (!isNaN(day)) {
         if (gig.status === 'confirmed' || map[day] === undefined) {
           map[day] = gig.status === 'confirmed' ? 'confirmed' : 'applied';
@@ -28,7 +38,7 @@ const ArtistSchedule: React.FC<ArtistScheduleProps> = ({ navigate }) => {
       }
     });
     return map;
-  }, []);
+  }, [gigs]);
 
   const daysInMonth = 31;
 
@@ -62,7 +72,7 @@ const ArtistSchedule: React.FC<ArtistScheduleProps> = ({ navigate }) => {
     return cells;
   };
 
-  const selectedGigs = ARTIST_GIGS.filter(g => parseInt(g.date.split(' ')[1]) === selectedDay);
+  const selectedGigs = gigs.filter(g => parseInt(String(g.date ?? '').split(' ')[1]) === selectedDay);
 
   return (
     <div className="flex-1 flex flex-col bg-background-dark h-screen overflow-hidden pb-safe text-white">
@@ -99,7 +109,7 @@ const ArtistSchedule: React.FC<ArtistScheduleProps> = ({ navigate }) => {
             {['This Month', 'Upcoming'].map(group => (
               <div key={group} className="space-y-4">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 ml-2">{group}</h3>
-                {ARTIST_GIGS.map(gig => (
+                {gigs.map(gig => (
                   <div key={gig.id} className="bg-surface-dark border border-white/5 rounded-3xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all">
                     <div className={`size-14 rounded-2xl flex flex-col items-center justify-center border ${
                       gig.status === 'confirmed' ? 'border-green-500/30 bg-green-500/5 text-green-500' :
