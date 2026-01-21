@@ -119,6 +119,7 @@ interface User {
 interface CreateUserData {
   email?: string;
   phone?: string;
+  password?: string;
   role: 'venue' | 'artist' | 'band';
 }
 

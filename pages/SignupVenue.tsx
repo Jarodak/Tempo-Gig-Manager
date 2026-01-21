@@ -81,7 +81,7 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
       await analyticsApi.track('signup_started', { method: 'email', role: 'venue' });
       
       // Create user account
-      const result = await signUp({ email, role: 'venue' });
+      const result = await signUp({ email, password, role: 'venue' });
       
       if (result.error) {
         setErrors({ email: result.error });

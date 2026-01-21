@@ -64,7 +64,7 @@ const SignupArtist: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
       await analyticsApi.track('signup_started', { method: 'email', role: 'artist' });
       
       // Create user account
-      const result = await signUp({ email, role: 'artist' });
+      const result = await signUp({ email, password, role: 'artist' });
       
       if (result.error) {
         setErrors({ email: result.error });

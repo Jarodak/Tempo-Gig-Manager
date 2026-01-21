@@ -44,6 +44,7 @@ export const isLoggedIn = (): boolean => {
 export const signUp = async (data: {
   email?: string;
   phone?: string;
+  password?: string;
   role: 'venue' | 'artist' | 'band';
 }): Promise<{ user: AuthUser; error?: string }> => {
   const response = await usersApi.create(data);

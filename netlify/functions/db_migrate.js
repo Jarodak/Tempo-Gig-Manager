@@ -19,6 +19,7 @@ export const handler = async (event) => {
         id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
         email text UNIQUE,
         phone text UNIQUE,
+        password_hash text,
         role text NOT NULL CHECK (role IN ('venue', 'artist', 'band')),
         two_factor_enabled boolean DEFAULT false,
         face_verified boolean DEFAULT false,

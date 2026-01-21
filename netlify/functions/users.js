@@ -1,5 +1,14 @@
 import { checkDb, json } from './_db.js';
 
+// Simple hash function for password (use bcrypt in production)
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + 'tempo_salt_2024');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const handler = async (event) => {
   try {
     const sql = checkDb();
@@ -29,7 +38,7 @@ export const handler = async (event) => {
     
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { email, phone, role } = body;
+      const { email, phone, password, role } = body;
       
       if (!role || !['venue', 'artist', 'band'].includes(role)) {
         return json(400, { error: 'Valid role required (venue, artist, band)' });
@@ -39,9 +48,11 @@ export const handler = async (event) => {
         return json(400, { error: 'Email or phone required' });
       }
       
+      const passwordHash = password ? await hashPassword(password) : null;
+      
       const [user] = await sql`
-        INSERT INTO users (email, phone, role)
-        VALUES (${email}, ${phone}, ${role})
+        INSERT INTO users (email, phone, password_hash, role)
+        VALUES (${email}, ${phone}, ${passwordHash}, ${role})
         RETURNING id::text, email, phone, role, two_factor_enabled, face_verified, profile_completed, created_at
       `;
       
