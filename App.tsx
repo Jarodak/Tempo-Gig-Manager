@@ -73,7 +73,7 @@ const App: React.FC = () => {
     setRole(selectedRole);
     setCurrentUser({ role: selectedRole, email, name });
     if (selectedRole === UserRole.VENUE) {
-      setCurrentView(AppView.VENUE_ONBOARDING);
+      setCurrentView(AppView.VENUE_DASHBOARD);
     } else {
       setCurrentView(AppView.ONBOARDING);
     }
