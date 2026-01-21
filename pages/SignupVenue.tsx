@@ -47,8 +47,7 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
     // TODO: Implement actual social login
     setTimeout(() => {
       setIsSubmitting(false);
-      onAuthSuccess(emailOrPhone, name);
-      navigate(AppView.PROFILE_COMPLETION);
+      onAuthSuccess(emailOrPhone || `${provider}@example.com`, name || 'User');
     }, 1500);
   };
 
@@ -59,7 +58,6 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
     setTimeout(() => {
       setIsSubmitting(false);
       onAuthSuccess(emailOrPhone, name);
-      navigate(AppView.TWO_FACTOR_SETUP);
     }, 1200);
   };
 

@@ -92,7 +92,9 @@ const App: React.FC = () => {
       
       // Venue Views
       case AppView.TWO_FACTOR_SETUP:
-        return <TwoFactorSetup navigate={(v) => setCurrentView(v)} onSetupComplete={() => setCurrentView(AppView.PROFILE_COMPLETION)} />;
+        return <TwoFactorSetup navigate={(v) => setCurrentView(v)} onSetupComplete={() => setCurrentView(AppView.VENUE_DASHBOARD)} />;
+      case AppView.VENUE_ONBOARDING:
+        return <VenueOnboarding navigate={(v) => setCurrentView(v)} logout={logout} />;
       case AppView.VENUE_DASHBOARD:
         return <VenueDashboard navigate={(v) => setCurrentView(v)} logout={logout} onSelectDay={(day) => { setActiveDay(day); setCurrentView(AppView.VENUE_SCHEDULE); }} />;
       case AppView.VENUE_SCHEDULE:
