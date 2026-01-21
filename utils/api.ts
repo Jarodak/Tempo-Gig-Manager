@@ -186,13 +186,14 @@ interface CreateArtistData {
   name: string;
   genre: string[];
   instruments: string[];
-  zip_code: string;
-  gender: string;
+  zip_code?: string;
+  gender?: string;
   email_or_phone: string;
   preview_song?: string;
   profile_picture?: string;
   city_of_origin?: string;
   open_to_work?: boolean;
+  bio?: string;
   user_id: string;
 }
 
