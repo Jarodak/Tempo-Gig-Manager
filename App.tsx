@@ -77,7 +77,7 @@ const App: React.FC = () => {
     if (selectedRole === UserRole.VENUE) {
       setCurrentView(AppView.VENUE_DASHBOARD);
     } else {
-      setCurrentView(AppView.ONBOARDING);
+      setCurrentView(AppView.ARTIST_FEED);
     }
   };
 
