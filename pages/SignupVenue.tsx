@@ -36,6 +36,7 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
   // Account fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   // Venue profile fields
   const [venueName, setVenueName] = useState('');
@@ -57,6 +58,9 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
     if (!password.trim()) e.password = "Password is required";
     else if (password.length < 8) e.password = "Password must be at least 8 characters";
+    else if (!/[A-Z]/.test(password)) e.password = "Password must contain an uppercase letter";
+    else if (!/[0-9]/.test(password)) e.password = "Password must contain a number";
+    if (password !== confirmPassword) e.confirmPassword = "Passwords do not match";
     if (!venueName.trim()) e.venueName = "Venue name is required";
     if (!address.trim()) e.address = "Address is required";
     if (genres.length === 0) e.genres = "Select at least one genre";
@@ -167,8 +171,14 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
           </div>
           <div>
             <label className="text-xs text-slate-400 ml-1">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="Min. 8 characters" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="Create a password" />
+            <p className="text-slate-500 text-[10px] mt-1 ml-1">Min. 8 characters, 1 uppercase, 1 number</p>
             {errors.password && <p className="text-red-500 text-xs mt-1 ml-1">{errors.password}</p>}
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="Repeat password" />
+            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1 ml-1">{errors.confirmPassword}</p>}
           </div>
         </div>
 
