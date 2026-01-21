@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
+import { bandsApi, bandMembersApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface BandProfileProps {
   navigate: (view: AppView) => void;
@@ -28,21 +30,58 @@ const BandProfile: React.FC<BandProfileProps> = ({ navigate }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bandId, setBandId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAddMember, setShowAddMember] = useState(false);
   const [showPostOpening, setShowPostOpening] = useState(false);
 
   // Band state
-  const [bandName, setBandName] = useState('The Midnight Echoes');
-  const [genres, setGenres] = useState<string[]>(['Indie', 'Rock']);
-  const [bio, setBio] = useState('A high-energy indie rock band from Brooklyn.');
-  const [bandPhoto, setBandPhoto] = useState('https://picsum.photos/seed/band_profile/800/600');
-  const [members, setMembers] = useState<BandMember[]>([
-    { id: '1', name: 'Alex Rivera', role: 'Lead', instrument: 'Vocals', avatar: 'https://picsum.photos/seed/member1/100/100', isVerified: true },
-    { id: '2', name: 'Jordan Kim', role: 'Member', instrument: 'Guitar', avatar: 'https://picsum.photos/seed/member2/100/100', isVerified: true },
-    { id: '3', name: 'Sam Chen', role: 'Member', instrument: 'Bass', avatar: 'https://picsum.photos/seed/member3/100/100', isVerified: false },
-    { id: '4', name: 'Taylor Brooks', role: 'Member', instrument: 'Drums', avatar: 'https://picsum.photos/seed/member4/100/100', isVerified: true },
-  ]);
+  const [bandName, setBandName] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
+  const [bio, setBio] = useState('');
+  const [bandPhoto, setBandPhoto] = useState('');
+  const [members, setMembers] = useState<BandMember[]>([]);
+
+  useEffect(() => {
+    const loadBand = async () => {
+      const user = getCurrentUser();
+      if (!user) {
+        setIsLoading(false);
+        setIsCreating(true);
+        return;
+      }
+      
+      await analyticsApi.track('screen_view', { screen: 'band_profile' }, user.id);
+      
+      const response = await bandsApi.getByUserId(user.id);
+      if (response.data?.bands && response.data.bands.length > 0) {
+        const b = response.data.bands[0];
+        setBandId(b.id);
+        setBandName(b.name);
+        setGenres(b.genre ? [b.genre] : []);
+        setBio('');
+        setBandPhoto(b.profile_picture || '');
+        
+        // Load members
+        const membersResponse = await bandMembersApi.getByBandId(b.id);
+        if (membersResponse.data?.members) {
+          setMembers(membersResponse.data.members.map((m: any) => ({
+            id: m.id,
+            name: m.name,
+            role: m.role,
+            instrument: m.instrument,
+            avatar: '',
+            isVerified: false,
+          })));
+        }
+      } else {
+        setIsCreating(true);
+      }
+      setIsLoading(false);
+    };
+    loadBand();
+  }, []);
 
   // Opening post state
   const [openingInstrument, setOpeningInstrument] = useState('');
@@ -71,11 +110,43 @@ const BandProfile: React.FC<BandProfileProps> = ({ navigate }) => {
   const handleSave = async () => {
     if (!validate()) return;
     setIsSaving(true);
-    setTimeout(() => {
+    
+    const user = getCurrentUser();
+    if (!user) {
       setIsSaving(false);
+      return;
+    }
+    
+    try {
+      const bandData = {
+        name: bandName,
+        genre: genres[0] || 'Rock',
+        phone: '555-0000',
+        email: user.email || 'band@tempo.app',
+        profile_picture: bandPhoto || 'https://picsum.photos/seed/band/400/400',
+        user_id: user.id,
+      };
+      
+      let response;
+      if (bandId) {
+        response = await bandsApi.update({ id: bandId, ...bandData });
+        await analyticsApi.track('profile_updated', { action: 'band_updated' }, user.id);
+      } else {
+        response = await bandsApi.create(bandData);
+        await analyticsApi.track('band_created', { bandName }, user.id);
+      }
+      
+      if (response?.data?.band) {
+        setBandId(response.data.band.id);
+      }
+      
       setIsEditing(false);
       setIsCreating(false);
-    }, 1500);
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInviteMember = () => {

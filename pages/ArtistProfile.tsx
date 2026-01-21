@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
+import { artistsApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface ArtistProfileProps {
   navigate: (view: AppView) => void;
@@ -20,20 +22,56 @@ const INSTRUMENT_OPTIONS = [
 const ArtistProfile: React.FC<ArtistProfileProps> = ({ navigate, logout }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [artistId, setArtistId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Form state
-  const [name, setName] = useState('The Midnight Echoes');
-  const [genres, setGenres] = useState<string[]>(['Indie', 'Rock']);
-  const [instruments, setInstruments] = useState<string[]>(['Guitar', 'Bass', 'Drums', 'Vocals']);
-  const [zipCode, setZipCode] = useState('11201');
+  const [name, setName] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
+  const [instruments, setInstruments] = useState<string[]>([]);
+  const [zipCode, setZipCode] = useState('');
   const [gender, setGender] = useState('');
-  const [emailOrPhone, setEmailOrPhone] = useState('band@midnightechoes.com');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [previewSong, setPreviewSong] = useState('');
-  const [profilePicture, setProfilePicture] = useState('https://picsum.photos/seed/artist_profile/400/400');
-  const [cityOfOrigin, setCityOfOrigin] = useState('Brooklyn, NY');
+  const [profilePicture, setProfilePicture] = useState('');
+  const [cityOfOrigin, setCityOfOrigin] = useState('');
   const [openToWork, setOpenToWork] = useState(true);
-  const [bio, setBio] = useState('Based in Brooklyn, The Midnight Echoes deliver a high-energy blend of modern indie hooks and classic garage rock grit.');
+  const [bio, setBio] = useState('');
+
+  useEffect(() => {
+    const loadArtist = async () => {
+      const user = getCurrentUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      await analyticsApi.track('screen_view', { screen: 'artist_profile' }, user.id);
+      
+      const response = await artistsApi.getByUserId(user.id);
+      if (response.data?.artist) {
+        const a = response.data.artist;
+        setArtistId(a.id);
+        setName(a.name);
+        setGenres(a.genre || []);
+        setInstruments(a.instruments || []);
+        setZipCode(a.zip_code || '');
+        setGender(a.gender || '');
+        setEmailOrPhone(a.email_or_phone || '');
+        setPreviewSong(a.preview_song || '');
+        setProfilePicture(a.profile_picture || '');
+        setCityOfOrigin(a.city_of_origin || '');
+        setOpenToWork(a.open_to_work ?? true);
+      } else {
+        // No profile yet, start in edit mode
+        setIsEditing(true);
+        setEmailOrPhone(user.email || '');
+      }
+      setIsLoading(false);
+    };
+    loadArtist();
+  }, []);
 
   const toggleGenre = (genre: string) => {
     setGenres(prev => 
@@ -70,11 +108,46 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ navigate, logout }) => {
     if (!validate()) return;
     
     setIsSaving(true);
-    // TODO: Save to API
-    setTimeout(() => {
+    const user = getCurrentUser();
+    if (!user) {
       setIsSaving(false);
+      return;
+    }
+    
+    try {
+      const artistData = {
+        name,
+        genre: genres,
+        instruments,
+        zip_code: zipCode,
+        gender,
+        email_or_phone: emailOrPhone,
+        preview_song: previewSong || undefined,
+        profile_picture: profilePicture || undefined,
+        city_of_origin: cityOfOrigin || undefined,
+        open_to_work: openToWork,
+        user_id: user.id,
+      };
+      
+      let response;
+      if (artistId) {
+        response = await artistsApi.update({ id: artistId, ...artistData });
+        await analyticsApi.track('profile_updated', { action: 'artist_updated' }, user.id);
+      } else {
+        response = await artistsApi.create(artistData);
+        await analyticsApi.track('profile_updated', { action: 'artist_created' }, user.id);
+      }
+      
+      if (response?.data?.artist) {
+        setArtistId(response.data.artist.id);
+      }
+      
       setIsEditing(false);
-    }, 1500);
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

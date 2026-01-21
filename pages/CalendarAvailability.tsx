@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
+import { calendarApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface CalendarAvailabilityProps {
   navigate: (view: AppView) => void;
@@ -17,14 +19,35 @@ const CalendarAvailability: React.FC<CalendarAvailabilityProps> = ({ navigate })
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
-  const [availability, setAvailability] = useState<Record<string, DayAvailability>>({
-    '2025-01-15': { date: '2025-01-15', status: 'booked', note: 'Jazz Night @ Moxy' },
-    '2025-01-18': { date: '2025-01-18', status: 'available' },
-    '2025-01-20': { date: '2025-01-20', status: 'tentative', note: 'Pending confirmation' },
-    '2025-01-22': { date: '2025-01-22', status: 'unavailable', note: 'Personal' },
-    '2025-01-25': { date: '2025-01-25', status: 'booked', note: 'Rock Show @ Blue Note' },
-  });
+  const [availability, setAvailability] = useState<Record<string, DayAvailability>>({});
   const [noteText, setNoteText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAvailability = async () => {
+      const user = getCurrentUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      await analyticsApi.track('screen_view', { screen: 'calendar_availability' }, user.id);
+      
+      const response = await calendarApi.getAvailability(user.id);
+      if (response.data?.availability) {
+        const mapped: Record<string, DayAvailability> = {};
+        response.data.availability.forEach((a: any) => {
+          mapped[a.date] = {
+            date: a.date,
+            status: a.is_available ? 'available' : 'unavailable',
+          };
+        });
+        setAvailability(mapped);
+      }
+      setIsLoading(false);
+    };
+    loadAvailability();
+  }, []);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -78,8 +101,19 @@ const CalendarAvailability: React.FC<CalendarAvailabilityProps> = ({ navigate })
     setShowStatusPicker(true);
   };
 
-  const setDayStatus = (status: AvailabilityStatus) => {
+  const setDayStatus = async (status: AvailabilityStatus) => {
     if (!selectedDate) return;
+    
+    const user = getCurrentUser();
+    if (user) {
+      await calendarApi.setAvailability({
+        user_id: user.id,
+        date: selectedDate,
+        is_available: status === 'available',
+      });
+      await analyticsApi.track('availability_updated', { date: selectedDate, status }, user.id);
+    }
+    
     setAvailability(prev => ({
       ...prev,
       [selectedDate]: { date: selectedDate, status, note: noteText || undefined }
@@ -89,8 +123,14 @@ const CalendarAvailability: React.FC<CalendarAvailabilityProps> = ({ navigate })
     setNoteText('');
   };
 
-  const clearDayStatus = () => {
+  const clearDayStatus = async () => {
     if (!selectedDate) return;
+    
+    const user = getCurrentUser();
+    if (user) {
+      await calendarApi.deleteAvailability(user.id, selectedDate);
+    }
+    
     setAvailability(prev => {
       const newAvail = { ...prev };
       delete newAvail[selectedDate];

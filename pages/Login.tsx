@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { AppView, UserRole } from '../types';
+import { logIn } from '../services/auth';
+import { analyticsApi } from '../utils/api';
 
 interface LoginProps {
   navigate: (view: AppView) => void;
@@ -25,13 +27,24 @@ const Login: React.FC<LoginProps> = ({ navigate, onAuthSuccess }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleLogin = (role: UserRole) => {
-    if (validate()) {
-      setIsSubmitting(true);
-      setTimeout(() => {
+  const handleLogin = async (role: UserRole) => {
+    if (!validate()) return;
+    setIsSubmitting(true);
+    
+    try {
+      const result = await logIn(email);
+      
+      if (result.error) {
+        setErrors({ email: result.error });
         setIsSubmitting(false);
-        onAuthSuccess(role, email);
-      }, 1000);
+        return;
+      }
+      
+      await analyticsApi.track('login', { method: 'email', role: result.user.role });
+      onAuthSuccess(result.user.role, email);
+    } catch (err) {
+      setErrors({ email: 'Login failed. Please try again.' });
+      setIsSubmitting(false);
     }
   };
 

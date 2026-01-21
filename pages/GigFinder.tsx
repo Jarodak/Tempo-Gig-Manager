@@ -1,7 +1,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppView, Gig } from '../types';
-import { getGigs } from '../apiClient';
+import { gigsApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface GigFinderProps {
   navigate: (view: AppView) => void;
@@ -27,13 +28,43 @@ const GigFinder: React.FC<GigFinderProps> = ({ navigate, logout }) => {
 
   useEffect(() => {
     let cancelled = false;
-    getGigs()
-      .then((data) => {
-        if (!cancelled) setGigs(data);
-      })
-      .catch(() => {
-        if (!cancelled) setGigs([]);
-      });
+    const loadGigs = async () => {
+      const user = getCurrentUser();
+      if (user) {
+        await analyticsApi.track('screen_view', { screen: 'gig_finder' }, user.id);
+      }
+      
+      const response = await gigsApi.list();
+      if (!cancelled && response.data?.gigs) {
+        const mappedGigs: Gig[] = response.data.gigs.map((g: any) => ({
+          id: g.id,
+          title: g.title,
+          venueId: g.venue_id || '',
+          venue: g.venue,
+          location: g.location,
+          date: g.date,
+          time: g.time,
+          price: g.price,
+          genre: Array.isArray(g.genre) ? g.genre : [g.genre],
+          isVerified: g.isVerified ?? false,
+          image: g.image,
+          stage: g.stage,
+          isRecurring: g.isRecurring ?? false,
+          frequency: g.frequency,
+          status: g.status || 'published',
+          isTipsOnly: g.isTipsOnly ?? false,
+          paymentType: g.payment_type || 'flat_fee',
+          esrbRating: g.esrb_rating || 'family',
+          equipmentProvided: g.equipment_provided || [],
+          postingSchedule: g.posting_schedule,
+          applicants: [],
+          createdAt: g.created_at || new Date().toISOString(),
+          updatedAt: g.updated_at || new Date().toISOString(),
+        }));
+        setGigs(mappedGigs);
+      }
+    };
+    loadGigs();
     return () => {
       cancelled = true;
     };

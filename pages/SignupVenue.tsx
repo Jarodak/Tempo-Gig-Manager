@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { AppView, VenueType, EsrbRating } from '../types';
+import { AppView } from '../types';
+import { signUp } from '../services/auth';
+import { analyticsApi } from '../utils/api';
 
 interface SignupVenueProps {
   navigate: (view: AppView) => void;
@@ -44,21 +46,56 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
   const handleSocialSignup = async (provider: 'google' | 'apple' | 'facebook' | 'x') => {
     setSocialProvider(provider);
     setIsSubmitting(true);
-    // TODO: Implement actual social login
-    setTimeout(() => {
+    
+    try {
+      // Track signup attempt
+      await analyticsApi.track('signup_started', { method: provider, role: 'venue' });
+      
+      // For social login, we'd integrate with OAuth providers
+      // For now, create user with provider email
+      const email = `${provider}_${Date.now()}@tempo.app`;
+      const result = await signUp({ email, role: 'venue' });
+      
+      if (result.error) {
+        setErrors({ emailOrPhone: result.error });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      await analyticsApi.track('signup_completed', { method: provider, role: 'venue' });
+      onAuthSuccess(email, name || 'User');
+    } catch (err) {
+      setErrors({ emailOrPhone: 'Signup failed. Please try again.' });
       setIsSubmitting(false);
-      onAuthSuccess(emailOrPhone || `${provider}@example.com`, name || 'User');
-    }, 1500);
+    }
   };
 
   const handleEmailSignup = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
-    // TODO: Implement actual signup API
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    try {
+      await analyticsApi.track('signup_started', { method: 'email', role: 'venue' });
+      
+      const isEmail = emailOrPhone.includes('@');
+      const result = await signUp({
+        email: isEmail ? emailOrPhone : undefined,
+        phone: !isEmail ? emailOrPhone : undefined,
+        role: 'venue',
+      });
+      
+      if (result.error) {
+        setErrors({ emailOrPhone: result.error });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      await analyticsApi.track('signup_completed', { method: 'email', role: 'venue' });
       onAuthSuccess(emailOrPhone, name);
-    }, 1200);
+    } catch (err) {
+      setErrors({ emailOrPhone: 'Signup failed. Please try again.' });
+      setIsSubmitting(false);
+    }
   };
 
   const toggleGenre = (genre: string) => {

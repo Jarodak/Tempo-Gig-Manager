@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { AppView } from '../types';
+import { signUp } from '../services/auth';
+import { analyticsApi } from '../utils/api';
 
 interface SignupProps {
   navigate: (view: AppView) => void;
@@ -30,13 +32,26 @@ const SignupArtist: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSignup = () => {
-    if (validate()) {
-      setIsSubmitting(true);
-      setTimeout(() => {
+  const handleSignup = async () => {
+    if (!validate()) return;
+    setIsSubmitting(true);
+    
+    try {
+      await analyticsApi.track('signup_started', { method: 'email', role: 'artist' });
+      
+      const result = await signUp({ email, role: 'artist' });
+      
+      if (result.error) {
+        setErrors({ email: result.error });
         setIsSubmitting(false);
-        onAuthSuccess(email, name);
-      }, 1200);
+        return;
+      }
+      
+      await analyticsApi.track('signup_completed', { method: 'email', role: 'artist' });
+      onAuthSuccess(email, name);
+    } catch (err) {
+      setErrors({ email: 'Signup failed. Please try again.' });
+      setIsSubmitting(false);
     }
   };
 

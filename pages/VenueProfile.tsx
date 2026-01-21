@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppView, Venue, VenueType, EsrbRating } from '../types';
+import { venuesApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface VenueProfileProps {
   navigate: (view: AppView) => void;
@@ -53,34 +55,38 @@ const VenueProfile: React.FC<VenueProfileProps> = ({ navigate, logout }) => {
   const [specialInstructions, setSpecialInstructions] = useState('');
 
   useEffect(() => {
-    // TODO: Load venues from API
-    const mockVenues: Venue[] = [
-      {
-        id: '1',
-        name: 'The Blue Note',
-        email: 'venue@bluenote.com',
-        phone: '(555) 123-4567',
-        address: '123 Jazz St, New York, NY 10012',
-        type: VenueType.BAR,
-        esrbRating: EsrbRating.FAMILY,
-        typicalGenres: ['Jazz', 'Blues'],
-        stageDetails: {
-          size: 'Medium',
-          availableOutlets: 8,
-          adaAccessible: true,
-        },
-        equipmentOnsite: ['PA System', 'Microphones', 'Drum Kit'],
-        specialInstructions: 'Load in through back entrance',
-        userId: 'user1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-    setVenues(mockVenues);
-    if (mockVenues.length > 0) {
-      setSelectedVenue(mockVenues[0]);
-      populateForm(mockVenues[0]);
-    }
+    const loadVenues = async () => {
+      const user = getCurrentUser();
+      if (!user) return;
+      
+      await analyticsApi.track('screen_view', { screen: 'venue_profile' }, user.id);
+      
+      const response = await venuesApi.getByUserId(user.id);
+      if (response.data?.venues) {
+        const mappedVenues: Venue[] = response.data.venues.map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          email: v.email,
+          phone: v.phone,
+          address: v.address,
+          type: v.type as VenueType,
+          esrbRating: v.esrb_rating as EsrbRating,
+          typicalGenres: v.typical_genres || [],
+          stageDetails: v.stage_details || { size: '', availableOutlets: 0, adaAccessible: false },
+          equipmentOnsite: v.equipment_onsite || [],
+          specialInstructions: v.special_instructions || '',
+          userId: v.user_id,
+          createdAt: v.created_at,
+          updatedAt: v.updated_at,
+        }));
+        setVenues(mappedVenues);
+        if (mappedVenues.length > 0) {
+          setSelectedVenue(mappedVenues[0]);
+          populateForm(mappedVenues[0]);
+        }
+      }
+    };
+    loadVenues();
   }, []);
 
   const populateForm = (venue: Venue) => {
@@ -115,12 +121,70 @@ const VenueProfile: React.FC<VenueProfileProps> = ({ navigate, logout }) => {
     if (!validate()) return;
     
     setIsSaving(true);
-    // TODO: Save to API
-    setTimeout(() => {
+    const user = getCurrentUser();
+    if (!user) {
       setIsSaving(false);
+      return;
+    }
+    
+    try {
+      const venueData = {
+        name,
+        email,
+        phone,
+        address,
+        type,
+        esrb_rating: esrbRating,
+        typical_genres: typicalGenres,
+        stage_details: { size: stageSize, availableOutlets, adaAccessible },
+        equipment_onsite: equipmentOnsite,
+        special_instructions: specialInstructions,
+        user_id: user.id,
+      };
+      
+      let response;
+      if (isAddingNew) {
+        response = await venuesApi.create(venueData);
+        await analyticsApi.track('profile_updated', { action: 'venue_created' }, user.id);
+      } else if (selectedVenue) {
+        response = await venuesApi.update({ id: selectedVenue.id, ...venueData });
+        await analyticsApi.track('profile_updated', { action: 'venue_updated' }, user.id);
+      }
+      
+      if (response?.data?.venue) {
+        const v = response.data.venue;
+        const updatedVenue: Venue = {
+          id: v.id,
+          name: v.name,
+          email: v.email,
+          phone: v.phone,
+          address: v.address,
+          type: v.type as VenueType,
+          esrbRating: v.esrb_rating as EsrbRating,
+          typicalGenres: v.typical_genres || [],
+          stageDetails: v.stage_details || { size: '', availableOutlets: 0, adaAccessible: false },
+          equipmentOnsite: v.equipment_onsite || [],
+          specialInstructions: v.special_instructions || '',
+          userId: v.user_id,
+          createdAt: v.created_at,
+          updatedAt: v.updated_at,
+        };
+        
+        if (isAddingNew) {
+          setVenues(prev => [...prev, updatedVenue]);
+        } else {
+          setVenues(prev => prev.map(venue => venue.id === updatedVenue.id ? updatedVenue : venue));
+        }
+        setSelectedVenue(updatedVenue);
+      }
+      
       setIsEditing(false);
       setIsAddingNew(false);
-    }, 1500);
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSelectVenue = (venue: Venue) => {

@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppView, PaymentType, EsrbRating } from '../types';
-import { createGig } from '../apiClient';
+import { gigsApi, venuesApi, analyticsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface CreateGigProps {
   navigate: (view: AppView) => void;
@@ -46,23 +47,26 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
 
   // Autofill from venue profile on mount
   useEffect(() => {
-    // TODO: Load from actual venue profile API
-    const venueProfile = {
-      name: 'The Blue Note',
-      typicalGenres: ['Jazz', 'Blues'],
-      esrbRating: EsrbRating.FAMILY,
-      equipmentOnsite: ['PA System', 'Microphones', 'Drum Kit'],
+    const loadVenueProfile = async () => {
+      const user = getCurrentUser();
+      if (!user) return;
+      
+      await analyticsApi.track('screen_view', { screen: 'create_gig' }, user.id);
+      
+      const response = await venuesApi.getByUserId(user.id);
+      if (response.data?.venues && response.data.venues.length > 0) {
+        const venue = response.data.venues[0];
+        setGenres(venue.typical_genres || []);
+        setEsrbRating((venue.esrb_rating as EsrbRating) || EsrbRating.FAMILY);
+        setEquipmentProvided(venue.equipment_onsite || []);
+        
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        setTitle(`${venue.name} – ${dateStr}`);
+        setAutofillApplied(true);
+      }
     };
-    
-    setGenres(venueProfile.typicalGenres);
-    setEsrbRating(venueProfile.esrbRating);
-    setEquipmentProvided(venueProfile.equipmentOnsite);
-    
-    // Set default title
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    setTitle(`${venueProfile.name} – ${dateStr}`);
-    setAutofillApplied(true);
+    loadVenueProfile();
   }, []);
 
   const toggleDay = (day: string) => {
@@ -127,24 +131,41 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
 
   const handlePublish = async () => {
     if (!validate()) return;
+    
+    const user = getCurrentUser();
+    if (!user) return;
+    
     try {
       setIsSubmitting(true);
       setErrors({});
-      await createGig({
+      
+      const response = await gigsApi.create({
         title,
         venue: 'Main Stage',
         location: 'NYC',
         date,
         time: loadInTime,
         price: paymentType === PaymentType.TIPS ? 'Tips Only' : `$${budget}`,
-        genre: genres[0],
+        genre: genres,
         isVerified: true,
         image: '',
         isRecurring,
-        frequency: isRecurring ? (frequency as any) : undefined,
-        status: 'draft',
+        frequency: isRecurring ? frequency : undefined,
+        status: 'published',
         isTipsOnly: paymentType === PaymentType.TIPS,
       });
+      
+      if (response.error) {
+        setErrors({ submit: response.error });
+        return;
+      }
+      
+      await analyticsApi.track('gig_created', { 
+        gigId: response.data?.gig?.id,
+        isRecurring,
+        paymentType 
+      }, user.id);
+      
       navigate(AppView.VENUE_DASHBOARD);
     } catch (err) {
       setErrors({ submit: err instanceof Error ? err.message : 'Failed to create gig' });
