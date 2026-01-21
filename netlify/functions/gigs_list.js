@@ -1,7 +1,8 @@
-import { sql, json } from './_db.js';
+import { checkDb, json } from './_db.js';
 
 export const handler = async () => {
   try {
+    const sql = checkDb();
     const gigs = await sql`
       SELECT
         id::text AS id,

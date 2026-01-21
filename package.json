@@ -10,12 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.37.0",
+    "@neondatabase/serverless": "^1.0.2",
     "@netlify/neon": "0.1.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "react-dom": "^19.2.3",
     "react": "^19.2.3",
-    "@google/genai": "^1.37.0"
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

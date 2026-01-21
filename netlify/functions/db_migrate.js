@@ -1,7 +1,9 @@
-import { sql, json } from './_db.js';
+import { checkDb, json } from './_db.js';
 
 export const handler = async (event) => {
   try {
+    const sql = checkDb();
+    
     // Check for migration token if set
     const token = process.env.MIGRATE_TOKEN;
     if (token && event.headers?.['x-migrate-token'] !== token) {

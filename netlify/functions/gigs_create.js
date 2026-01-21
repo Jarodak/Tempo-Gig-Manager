@@ -1,7 +1,9 @@
-import { sql, json } from './_db.js';
+import { checkDb, json } from './_db.js';
 
 export const handler = async (event) => {
   try {
+    const sql = checkDb();
+    
     if (event.httpMethod !== 'POST') {
       return json(405, { error: 'POST required' });
     }
