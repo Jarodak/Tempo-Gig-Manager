@@ -1,129 +1,138 @@
 import React, { useState } from 'react';
-import { AppView } from '../types';
+import { AppView, VenueType, EsrbRating } from '../types';
 import { signUp } from '../services/auth';
-import { analyticsApi } from '../utils/api';
+import { analyticsApi, venuesApi } from '../utils/api';
 
 interface SignupVenueProps {
   navigate: (view: AppView) => void;
   onAuthSuccess: (email: string, name: string) => void;
 }
 
+const VENUE_TYPES = [
+  { value: 'hotel', label: 'Hotel' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'bar', label: 'Bar' },
+  { value: 'dive', label: 'Dive Bar' },
+  { value: 'church', label: 'Church' },
+];
+
+const ESRB_OPTIONS = [
+  { value: 'family', label: 'Family Friendly' },
+  { value: '21+', label: '21+' },
+  { value: 'nsfw', label: 'NSFW' },
+];
+
 const GENRE_OPTIONS = [
   'Jazz', 'Rock', 'Pop', 'Electronic', 'Hip Hop', 'R&B', 'Country', 
   'Folk', 'Classical', 'Metal', 'Punk', 'Indie', 'Blues'
 ];
 
-const INSTRUMENT_OPTIONS = [
-  'Vocals', 'Guitar', 'Bass', 'Drums', 'Piano', 'Saxophone', 
-  'Trumpet', 'Violin', 'Cello', 'Flute', 'DJ Equipment'
+const EQUIPMENT_OPTIONS = [
+  'PA System', 'Microphones', 'Drum Kit', 'Piano', 'Lighting System',
+  'Stage Monitors', 'DJ Booth', 'Backline', 'Cables', 'Power Distribution'
 ];
 
 const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) => {
+  // Account fields
+  const [email, setEmail] = useState('');
+  
+  // Venue profile fields
   const [venueName, setVenueName] = useState('');
-  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [venueType, setVenueType] = useState('bar');
+  const [esrbRating, setEsrbRating] = useState('family');
   const [genres, setGenres] = useState<string[]>([]);
-  const [instruments, setInstruments] = useState<string[]>([]);
-  const [emailOrPhone, setEmailOrPhone] = useState('');
-  const [errors, setErrors] = useState<{ venueName?: string; name?: string; genres?: string; instruments?: string; emailOrPhone?: string }>({});
+  const [equipment, setEquipment] = useState<string[]>([]);
+  const [stageSize, setStageSize] = useState('medium');
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [socialProvider, setSocialProvider] = useState<'google' | 'apple' | 'facebook' | 'x' | null>(null);
 
   const validate = () => {
-    const e: any = {};
+    const e: Record<string, string> = {};
+    if (!email.trim()) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
     if (!venueName.trim()) e.venueName = "Venue name is required";
-    if (!name.trim()) e.name = "Your name is required";
-    if (genres.length === 0) e.genres = "At least one genre is required";
-    if (instruments.length === 0) e.instruments = "At least one instrument is required";
-    if (!emailOrPhone.trim()) e.emailOrPhone = "Email or phone is required";
-    else if (emailOrPhone.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone)) {
-      e.emailOrPhone = "Invalid email format";
-    }
+    if (!address.trim()) e.address = "Address is required";
+    if (genres.length === 0) e.genres = "Select at least one genre";
     
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSocialSignup = (provider: 'google' | 'apple' | 'facebook' | 'x') => {
-    setSocialProvider(provider);
-    
-    // Map provider to OAuth endpoint
+  const handleSocialSignup = (provider: 'google' | 'x') => {
     const providerMap: Record<string, string> = {
       google: '/.netlify/functions/auth-google',
-      facebook: '/.netlify/functions/auth-facebook',
-      apple: '/.netlify/functions/auth-apple',
       x: '/.netlify/functions/auth-twitter',
     };
-    
-    // Redirect to OAuth provider with role
-    const authUrl = `${providerMap[provider]}?role=venue`;
-    window.location.href = authUrl;
+    window.location.href = `${providerMap[provider]}?role=venue`;
   };
 
-  const handleEmailSignup = async () => {
+  const handleSignup = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
     
     try {
       await analyticsApi.track('signup_started', { method: 'email', role: 'venue' });
       
-      const isEmail = emailOrPhone.includes('@');
-      const result = await signUp({
-        email: isEmail ? emailOrPhone : undefined,
-        phone: !isEmail ? emailOrPhone : undefined,
-        role: 'venue',
-      });
+      // Create user account
+      const result = await signUp({ email, role: 'venue' });
       
       if (result.error) {
-        setErrors({ emailOrPhone: result.error });
+        setErrors({ email: result.error });
         setIsSubmitting(false);
         return;
       }
       
+      // Create venue profile with all collected data
+      await venuesApi.create({
+        name: venueName,
+        email: email,
+        phone: phone,
+        address: address,
+        type: venueType,
+        esrb_rating: esrbRating,
+        typical_genres: genres,
+        stage_details: { size: stageSize, availableOutlets: 4, adaAccessible: true },
+        equipment_onsite: equipment,
+        special_instructions: specialInstructions,
+        user_id: result.user.id,
+      });
+      
       await analyticsApi.track('signup_completed', { method: 'email', role: 'venue' });
-      onAuthSuccess(emailOrPhone, name);
+      onAuthSuccess(email, venueName);
     } catch (err) {
-      setErrors({ emailOrPhone: 'Signup failed. Please try again.' });
+      setErrors({ email: 'Signup failed. Please try again.' });
       setIsSubmitting(false);
     }
   };
 
   const toggleGenre = (genre: string) => {
-    setGenres(prev => 
-      prev.includes(genre) 
-        ? prev.filter(g => g !== genre)
-        : [...prev, genre]
-    );
+    setGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
   };
 
-  const toggleInstrument = (instrument: string) => {
-    setInstruments(prev => 
-      prev.includes(instrument) 
-        ? prev.filter(i => i !== instrument)
-        : [...prev, instrument]
-    );
+  const toggleEquipment = (item: string) => {
+    setEquipment(prev => prev.includes(item) ? prev.filter(e => e !== item) : [...prev, item]);
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-background-dark p-6 overflow-hidden text-white">
-      <header className="pt-10 flex items-center justify-between">
+    <div className="flex-1 flex flex-col bg-background-dark text-white">
+      <header className="sticky top-0 z-10 bg-background-dark/90 backdrop-blur-xl px-6 pt-12 pb-4 flex items-center justify-between">
         <button onClick={() => navigate(AppView.LANDING)} className="size-11 rounded-2xl bg-surface-dark flex items-center justify-center text-slate-400">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-white text-lg font-black flex-1 text-center tracking-tight">Venue Sign Up</h1>
+        <h1 className="text-lg font-black">Create Your Venue</h1>
         <div className="w-11"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-5 py-8 space-y-8 hide-scrollbar">
+      <main className="flex-1 overflow-y-auto px-6 pb-8 space-y-6 hide-scrollbar">
         {/* Social Login */}
-        <div className="space-y-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Quick Sign Up</h3>
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Quick Sign Up</p>
           <div className="grid grid-cols-2 gap-3">
-            {/* Google */}
-            <button
-              onClick={() => handleSocialSignup('google')}
-              disabled={isSubmitting}
-              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
+            <button onClick={() => handleSocialSignup('google')} className="h-12 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -132,134 +141,119 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
               </svg>
               <span className="text-sm font-medium">Google</span>
             </button>
-            {/* X (Twitter) */}
-            <button
-              onClick={() => handleSocialSignup('x')}
-              disabled={isSubmitting}
-              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
+            <button onClick={() => handleSocialSignup('x')} className="h-12 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
               <span className="text-sm font-medium">X</span>
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 py-2">
-          <div className="flex-1 h-px bg-slate-700"></div>
-          <span className="text-slate-500 text-xs font-medium">OR</span>
-          <div className="flex-1 h-px bg-slate-700"></div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-white/10"></div>
+          <span className="text-slate-500 text-xs font-medium">OR COMPLETE PROFILE</span>
+          <div className="flex-1 h-px bg-white/10"></div>
         </div>
 
-        {/* Email/Phone Signup */}
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Venue Name</label>
-              <input 
-                value={venueName}
-                onChange={(e) => {
-                  setVenueName(e.target.value);
-                  if (errors.venueName) setErrors({ ...errors, venueName: undefined });
-                }}
-                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
-                placeholder="The Blue Note" 
-              />
-              {errors.venueName && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.venueName}</p>}
-            </div>
+        {/* Account Info */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Account</p>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Email</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="venue@example.com" />
+            {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>}
+          </div>
+        </div>
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Your Name</label>
-              <input 
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors({ ...errors, name: undefined });
-                }}
-                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
-                placeholder="John Doe" 
-              />
-              {errors.name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.name}</p>}
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Genre (Multi-select)</label>
-              <div className="relative">
-                <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
-                  {GENRE_OPTIONS.map(genre => (
-                    <button
-                      key={genre}
-                      type="button"
-                      onClick={() => toggleGenre(genre)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        genres.includes(genre)
-                          ? 'bg-primary text-white'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      {genre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {errors.genres && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.genres}</p>}
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Instruments Needed (Multi-select)</label>
-              <div className="relative">
-                <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
-                  {INSTRUMENT_OPTIONS.map(instrument => (
-                    <button
-                      key={instrument}
-                      type="button"
-                      onClick={() => toggleInstrument(instrument)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        instruments.includes(instrument)
-                          ? 'bg-accent-cyan text-black'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      {instrument}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {errors.instruments && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.instruments}</p>}
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Email or Phone</label>
-              <input 
-                value={emailOrPhone}
-                onChange={(e) => {
-                  setEmailOrPhone(e.target.value);
-                  if (errors.emailOrPhone) setErrors({ ...errors, emailOrPhone: undefined });
-                }}
-                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
-                placeholder="venue@example.com or (555) 123-4567" 
-              />
-              {errors.emailOrPhone && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.emailOrPhone}</p>}
-            </div>
+        {/* Venue Info */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Venue Details</p>
+          
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Venue Name</label>
+            <input value={venueName} onChange={(e) => setVenueName(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="The Blue Note" />
+            {errors.venueName && <p className="text-red-500 text-xs mt-1 ml-1">{errors.venueName}</p>}
           </div>
 
-          <button 
-            onClick={handleEmailSignup}
-            disabled={isSubmitting}
-            className={`w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all ${
-              isSubmitting ? 'bg-slate-800 text-slate-600' : 'bg-primary text-white shadow-primary/40 active:scale-[0.97]'
-            }`}
-          >
-            {isSubmitting ? 'Creating Account...' : 'Continue with Email'}
-            {!isSubmitting && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
-          </button>
-        </div>
-      </main>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Phone</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="(555) 123-4567" />
+          </div>
 
-      <div className="pb-10 text-center">
-        <button onClick={() => navigate(AppView.LOGIN)} className="text-slate-500 font-bold text-xs">Already have an account? <span className="text-white">Log in</span></button>
-      </div>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Address</label>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="123 Main St, City, State" />
+            {errors.address && <p className="text-red-500 text-xs mt-1 ml-1">{errors.address}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 ml-1">Venue Type</label>
+              <select value={venueType} onChange={(e) => setVenueType(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary">
+                {VENUE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 ml-1">Age Rating</label>
+              <select value={esrbRating} onChange={(e) => setEsrbRating(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary">
+                {ESRB_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Genres */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Typical Genres</p>
+          <div className="flex flex-wrap gap-2">
+            {GENRE_OPTIONS.map(genre => (
+              <button key={genre} type="button" onClick={() => toggleGenre(genre)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${genres.includes(genre) ? 'bg-primary text-white' : 'bg-surface-dark text-slate-400 border border-white/10'}`}>
+                {genre}
+              </button>
+            ))}
+          </div>
+          {errors.genres && <p className="text-red-500 text-xs">{errors.genres}</p>}
+        </div>
+
+        {/* Equipment */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Equipment On-Site</p>
+          <div className="flex flex-wrap gap-2">
+            {EQUIPMENT_OPTIONS.map(item => (
+              <button key={item} type="button" onClick={() => toggleEquipment(item)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${equipment.includes(item) ? 'bg-accent-cyan text-black' : 'bg-surface-dark text-slate-400 border border-white/10'}`}>
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stage */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Stage Size</p>
+          <div className="grid grid-cols-3 gap-2">
+            {['small', 'medium', 'large'].map(size => (
+              <button key={size} type="button" onClick={() => setStageSize(size)} className={`h-12 rounded-xl text-sm font-bold capitalize transition-all ${stageSize === size ? 'bg-primary text-white' : 'bg-surface-dark text-slate-400 border border-white/10'}`}>
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Special Instructions */}
+        <div>
+          <label className="text-xs text-slate-400 ml-1">Special Instructions (Optional)</label>
+          <textarea value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} className="w-full h-24 bg-surface-dark border border-white/10 rounded-xl p-4 font-medium outline-none focus:border-primary resize-none" placeholder="Load-in details, parking info, etc." />
+        </div>
+
+        {/* Submit */}
+        <button onClick={handleSignup} disabled={isSubmitting} className={`w-full h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-2xl transition-all ${isSubmitting ? 'bg-slate-800 text-slate-600' : 'bg-primary text-white shadow-primary/30 active:scale-[0.98]'}`}>
+          {isSubmitting ? 'Creating Your Venue...' : 'Create Venue & Sign Up'}
+          {!isSubmitting && <span className="material-symbols-outlined">arrow_forward</span>}
+        </button>
+
+        <p className="text-center text-slate-500 text-sm">
+          Already have an account? <button onClick={() => navigate(AppView.LOGIN)} className="text-primary font-bold">Log in</button>
+        </p>
+      </main>
     </div>
   );
 };
