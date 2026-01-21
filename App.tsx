@@ -7,6 +7,7 @@ import GigFinder from './pages/GigFinder';
 import CreateGig from './pages/CreateGig';
 import ArtistRanking from './pages/ArtistRanking';
 import Onboarding from './pages/Onboarding';
+import TwoFactorSetup from './pages/TwoFactorSetup';
 import VenueOnboarding from './pages/VenueOnboarding';
 import Agreement from './pages/Agreement';
 import InviteArtist from './pages/InviteArtist';
@@ -90,8 +91,8 @@ const App: React.FC = () => {
         return <SignupArtist navigate={(v) => setCurrentView(v)} onAuthSuccess={(email, name) => handleSignup(UserRole.ARTIST, email, name)} />;
       
       // Venue Views
-      case AppView.VENUE_ONBOARDING:
-        return <VenueOnboarding navigate={(v) => setCurrentView(v)} logout={logout} />;
+      case AppView.TWO_FACTOR_SETUP:
+        return <TwoFactorSetup navigate={(v) => setCurrentView(v)} onSetupComplete={() => setCurrentView(AppView.PROFILE_COMPLETION)} />;
       case AppView.VENUE_DASHBOARD:
         return <VenueDashboard navigate={(v) => setCurrentView(v)} logout={logout} onSelectDay={(day) => { setActiveDay(day); setCurrentView(AppView.VENUE_SCHEDULE); }} />;
       case AppView.VENUE_SCHEDULE:

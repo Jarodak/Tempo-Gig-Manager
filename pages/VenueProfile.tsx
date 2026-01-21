@@ -1,101 +1,431 @@
-
-import React from 'react';
-import { AppView } from '../types';
+import React, { useState, useEffect } from 'react';
+import { AppView, Venue, VenueType, EsrbRating } from '../types';
 
 interface VenueProfileProps {
   navigate: (view: AppView) => void;
   logout: () => void;
 }
 
+const VENUE_TYPES = [
+  { value: VenueType.HOTEL, label: 'Hotel' },
+  { value: VenueType.RESTAURANT, label: 'Restaurant' },
+  { value: VenueType.BAR, label: 'Bar' },
+  { value: VenueType.DIVE, label: 'Dive Bar' },
+  { value: VenueType.CHURCH, label: 'Church' },
+];
+
+const ESRB_OPTIONS = [
+  { value: EsrbRating.FAMILY, label: 'Family Friendly' },
+  { value: EsrbRating.ADULTS_ONLY, label: '21+' },
+  { value: EsrbRating.NSFW, label: 'NSFW' },
+];
+
+const GENRE_OPTIONS = [
+  'Jazz', 'Rock', 'Pop', 'Electronic', 'Hip Hop', 'R&B', 'Country', 
+  'Folk', 'Classical', 'Metal', 'Punk', 'Indie', 'Blues'
+];
+
+const EQUIPMENT_OPTIONS = [
+  'PA System', 'Microphones', 'Drum Kit', 'Piano', 'Lighting System',
+  'Stage Monitors', 'DJ Booth', 'Backline', 'Cables', 'Power Distribution'
+];
+
 const VenueProfile: React.FC<VenueProfileProps> = ({ navigate, logout }) => {
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [type, setType] = useState<VenueType>(VenueType.BAR);
+  const [esrbRating, setEsrbRating] = useState<EsrbRating>(EsrbRating.FAMILY);
+  const [typicalGenres, setTypicalGenres] = useState<string[]>([]);
+  const [stageSize, setStageSize] = useState('');
+  const [availableOutlets, setAvailableOutlets] = useState(0);
+  const [adaAccessible, setAdaAccessible] = useState(false);
+  const [equipmentOnsite, setEquipmentOnsite] = useState<string[]>([]);
+  const [specialInstructions, setSpecialInstructions] = useState('');
+
+  useEffect(() => {
+    // TODO: Load venues from API
+    const mockVenues: Venue[] = [
+      {
+        id: '1',
+        name: 'The Blue Note',
+        email: 'venue@bluenote.com',
+        phone: '(555) 123-4567',
+        address: '123 Jazz St, New York, NY 10012',
+        type: VenueType.BAR,
+        esrbRating: EsrbRating.FAMILY,
+        typicalGenres: ['Jazz', 'Blues'],
+        stageDetails: {
+          size: 'Medium',
+          availableOutlets: 8,
+          adaAccessible: true,
+        },
+        equipmentOnsite: ['PA System', 'Microphones', 'Drum Kit'],
+        specialInstructions: 'Load in through back entrance',
+        userId: 'user1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+    setVenues(mockVenues);
+    if (mockVenues.length > 0) {
+      setSelectedVenue(mockVenues[0]);
+      populateForm(mockVenues[0]);
+    }
+  }, []);
+
+  const populateForm = (venue: Venue) => {
+    setName(venue.name);
+    setEmail(venue.email);
+    setPhone(venue.phone);
+    setAddress(venue.address);
+    setType(venue.type);
+    setEsrbRating(venue.esrbRating);
+    setTypicalGenres(venue.typicalGenres);
+    setStageSize(venue.stageDetails.size);
+    setAvailableOutlets(venue.stageDetails.availableOutlets);
+    setAdaAccessible(venue.stageDetails.adaAccessible);
+    setEquipmentOnsite(venue.equipmentOnsite);
+    setSpecialInstructions(venue.specialInstructions || '');
+  };
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = "Venue name is required";
+    if (!email.trim()) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
+    if (!phone.trim()) e.phone = "Phone is required";
+    if (!address.trim()) e.address = "Address is required";
+    if (typicalGenres.length === 0) e.typicalGenres = "At least one genre is required";
+    
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    
+    setIsSaving(true);
+    // TODO: Save to API
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsEditing(false);
+      setIsAddingNew(false);
+    }, 1500);
+  };
+
+  const handleSelectVenue = (venue: Venue) => {
+    setSelectedVenue(venue);
+    populateForm(venue);
+    setIsEditing(false);
+    setIsAddingNew(false);
+  };
+
+  const handleAddNew = () => {
+    setSelectedVenue(null);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setAddress('');
+    setType(VenueType.BAR);
+    setEsrbRating(EsrbRating.FAMILY);
+    setTypicalGenres([]);
+    setStageSize('');
+    setAvailableOutlets(0);
+    setAdaAccessible(false);
+    setEquipmentOnsite([]);
+    setSpecialInstructions('');
+    setIsAddingNew(true);
+    setIsEditing(true);
+  };
+
+  const toggleGenre = (genre: string) => {
+    setTypicalGenres(prev => 
+      prev.includes(genre) 
+        ? prev.filter(g => g !== genre)
+        : [...prev, genre]
+    );
+  };
+
+  const toggleEquipment = (equipment: string) => {
+    setEquipmentOnsite(prev => 
+      prev.includes(equipment) 
+        ? prev.filter(e => e !== equipment)
+        : [...prev, equipment]
+    );
+  };
+
   return (
-    <div className="flex-1 flex flex-col bg-background-dark overflow-hidden pb-safe text-white">
-      <header className="p-4 pt-10 flex items-center justify-between bg-background-dark/50 backdrop-blur-md sticky top-0 z-50 border-b border-white/5">
-        <button onClick={() => navigate(AppView.VENUE_DASHBOARD)} className="size-11 rounded-2xl bg-surface-dark flex items-center justify-center text-slate-400 active:scale-90 transition-transform">
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <div className="flex-1 text-center">
-           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Venue Profile</p>
+    <div className="flex-1 flex flex-col bg-background-dark h-screen overflow-hidden pb-safe text-white">
+      <header className="sticky top-0 z-[100] bg-background-dark/80 backdrop-blur-xl pt-10 pb-4 px-5 border-b border-white/5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tighter">Venue Profile</h2>
+          <div className="flex gap-2">
+            <button 
+              onClick={logout}
+              className="size-11 rounded-2xl bg-surface-dark border border-white/5 flex items-center justify-center text-slate-400 active:scale-90"
+            >
+              <span className="material-symbols-outlined">logout</span>
+            </button>
+          </div>
         </div>
-        <button onClick={logout} className="size-11 rounded-2xl bg-surface-dark flex items-center justify-center text-red-500 active:scale-90 transition-transform">
-          <span className="material-symbols-outlined">logout</span>
-        </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="h-48 w-full bg-slate-900 relative">
-          <img src="https://picsum.photos/seed/venue_profile/800/400" className="w-full h-full object-cover opacity-60" alt="Venue" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent"></div>
-          <div className="absolute -bottom-6 left-6">
-            <div className="size-24 bg-surface-dark border-4 border-background-dark rounded-[2rem] flex items-center justify-center shadow-xl">
-              <span className="material-symbols-outlined text-primary text-4xl">nightlife</span>
+      <main className="flex-1 overflow-y-auto px-5 py-6 hide-scrollbar">
+        {/* Venue Selector */}
+        {venues.length > 1 && !isEditing && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Your Venues</h3>
+              <button
+                onClick={handleAddNew}
+                className="h-10 px-4 bg-primary text-white text-xs font-black rounded-xl active:scale-90 transition-all"
+              >
+                <span className="material-symbols-outlined text-lg mr-1">add</span>
+                Add Venue
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {venues.map(venue => (
+                <button
+                  key={venue.id}
+                  onClick={() => handleSelectVenue(venue)}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    selectedVenue?.id === venue.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-white/10 text-slate-400 hover:border-white/20'
+                  }`}
+                >
+                  <div className="font-black text-base">{venue.name}</div>
+                  <div className="text-slate-500 text-sm mt-1">{venue.address}</div>
+                </button>
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="px-6 pt-10 space-y-2">
-          <h1 className="text-3xl font-black tracking-tighter">Blue Note NYC</h1>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-sm">location_on</span>
-            131 W 3rd St, New York, NY 10012
-          </p>
-        </div>
+        {/* Venue Form */}
+        {(isEditing || venues.length <= 1) && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black">
+                {isAddingNew ? 'Add New Venue' : 'Edit Venue'}
+              </h3>
+              {!isAddingNew && (
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="text-slate-500 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
 
-        <div className="px-6 py-8 grid grid-cols-2 gap-4">
-          <div className="bg-surface-dark border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-             <div className="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-               <span className="material-symbols-outlined text-xl">groups</span>
-             </div>
-             <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Capacity</p>
-                <p className="text-base font-black">250 Cap</p>
-             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Venue Name</label>
+                  <input
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errors.name) setErrors({ ...errors, name: undefined });
+                    }}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600"
+                    placeholder="The Blue Note"
+                  />
+                  {errors.name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.name}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Email Address</label>
+                  <input
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors({ ...errors, email: undefined });
+                    }}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600"
+                    placeholder="venue@example.com"
+                  />
+                  {errors.email && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Phone Number</label>
+                  <input
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (errors.phone) setErrors({ ...errors, phone: undefined });
+                    }}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600"
+                    placeholder="(555) 123-4567"
+                  />
+                  {errors.phone && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.phone}</p>}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Address</label>
+                  <textarea
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      if (errors.address) setErrors({ ...errors, address: undefined });
+                    }}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-24 px-4 py-3 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600 resize-none"
+                    placeholder="123 Main St, City, State 12345"
+                  />
+                  {errors.address && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.address}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Type of Venue</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as VenueType)}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white"
+                  >
+                    {VENUE_TYPES.map(vt => (
+                      <option key={vt.value} value={vt.value}>{vt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">ESRB Setting</label>
+                  <select
+                    value={esrbRating}
+                    onChange={(e) => setEsrbRating(e.target.value as EsrbRating)}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white"
+                  >
+                    {ESRB_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Typical Genres</label>
+                  <div className="relative">
+                    <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+                      {GENRE_OPTIONS.map(genre => (
+                        <button
+                          key={genre}
+                          type="button"
+                          onClick={() => toggleGenre(genre)}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                            typicalGenres.includes(genre)
+                              ? 'bg-primary text-white'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          {genre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {errors.typicalGenres && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.typicalGenres}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Stage Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Stage Size</label>
+                  <input
+                    value={stageSize}
+                    onChange={(e) => setStageSize(e.target.value)}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600"
+                    placeholder="Small, Medium, Large"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Available Outlets</label>
+                  <input
+                    type="number"
+                    value={availableOutlets}
+                    onChange={(e) => setAvailableOutlets(parseInt(e.target.value) || 0)}
+                    className="w-full rounded-2xl border-none bg-surface-dark h-14 px-4 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600"
+                    placeholder="8"
+                  />
+                </div>
+
+                <div className="flex items-center h-14">
+                  <input
+                    type="checkbox"
+                    id="ada"
+                    checked={adaAccessible}
+                    onChange={(e) => setAdaAccessible(e.target.checked)}
+                    className="w-5 h-5 text-primary rounded focus:ring-primary/50"
+                  />
+                  <label htmlFor="ada" className="ml-3 text-sm font-medium">ADA Accessible</label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Equipment Onsite</h4>
+              <div className="relative">
+                <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+                  {EQUIPMENT_OPTIONS.map(equipment => (
+                    <button
+                      key={equipment}
+                      type="button"
+                      onClick={() => toggleEquipment(equipment)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        equipmentOnsite.includes(equipment)
+                          ? 'bg-accent-cyan text-black'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {equipment}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Special Instructions</label>
+              <textarea
+                value={specialInstructions}
+                onChange={(e) => setSpecialInstructions(e.target.value)}
+                className="w-full rounded-2xl border-none bg-surface-dark h-24 px-4 py-3 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black text-white placeholder:text-slate-600 resize-none"
+                placeholder="Load in through back entrance, parking available..."
+              />
+            </div>
+            </div>
+
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all ${
+                isSaving
+                  ? 'bg-slate-800 text-slate-600'
+                  : 'bg-primary text-white shadow-primary/40 active:scale-[0.97]'
+              }`}
+            >
+              {isSaving ? 'Saving...' : (isAddingNew ? 'Add Venue' : 'Save Changes')}
+              {!isSaving && <span className="material-symbols-outlined text-2xl">save</span>}
+            </button>
           </div>
-          <div className="bg-surface-dark border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-             <div className="size-10 bg-accent-cyan/10 text-accent-cyan rounded-xl flex items-center justify-center">
-               <span className="material-symbols-outlined text-xl">confirmation_number</span>
-             </div>
-             <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gigs Hosted</p>
-                <p className="text-base font-black">1,402</p>
-             </div>
-          </div>
-        </div>
-
-        <div className="px-6 space-y-8">
-          <section className="space-y-4">
-             <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 ml-1">About the Space</h3>
-             <div className="bg-surface-dark border border-white/5 rounded-[2.5rem] p-6">
-                <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                  The Blue Note is New York's premier jazz club, offering nightly performances by world-class artists. Known for its intimate atmosphere and superior acoustics.
-                </p>
-             </div>
-          </section>
-        </div>
-
-        <div className="h-24"></div>
+        )}
       </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-background-dark/95 backdrop-blur-2xl border-t border-white/5 px-8 pt-4 pb-10 z-[120]">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <button onClick={() => navigate(AppView.VENUE_DASHBOARD)} className="flex flex-col items-center gap-1.5 text-slate-500 active:scale-90 transition-transform">
-            <span className="material-symbols-outlined text-[28px]">dashboard</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">Dashboard</span>
-          </button>
-          <button onClick={() => navigate(AppView.VENUE_SCHEDULE)} className="flex flex-col items-center gap-1.5 text-slate-500 active:scale-90 transition-transform">
-            <span className="material-symbols-outlined text-[28px]">calendar_month</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">Schedule</span>
-          </button>
-          <button onClick={() => navigate(AppView.VENUE_ROSTER)} className="flex flex-col items-center gap-1.5 text-slate-500 active:scale-90 transition-transform">
-            <span className="material-symbols-outlined text-[28px]">group</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">Roster</span>
-          </button>
-          <button className="flex flex-col items-center gap-1.5 text-primary active:scale-90 transition-transform">
-            <span className="material-symbols-outlined fill-1 text-[28px]">account_circle</span>
-            <span className="text-[10px] font-black uppercase tracking-tighter">Profile</span>
-          </button>
-        </div>
-      </nav>
     </div>
   );
 };

@@ -1,43 +1,82 @@
-
 import React, { useState } from 'react';
-import { AppView } from '../types';
+import { AppView, VenueType, EsrbRating } from '../types';
 
-interface SignupProps {
+interface SignupVenueProps {
   navigate: (view: AppView) => void;
   onAuthSuccess: (email: string, name: string) => void;
 }
 
-const SignupVenue: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+const GENRE_OPTIONS = [
+  'Jazz', 'Rock', 'Pop', 'Electronic', 'Hip Hop', 'R&B', 'Country', 
+  'Folk', 'Classical', 'Metal', 'Punk', 'Indie', 'Blues'
+];
+
+const INSTRUMENT_OPTIONS = [
+  'Vocals', 'Guitar', 'Bass', 'Drums', 'Piano', 'Saxophone', 
+  'Trumpet', 'Violin', 'Cello', 'Flute', 'DJ Equipment'
+];
+
+const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) => {
+  const [venueName, setVenueName] = useState('');
   const [name, setName] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string; name?: string }>({});
+  const [genres, setGenres] = useState<string[]>([]);
+  const [instruments, setInstruments] = useState<string[]>([]);
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [errors, setErrors] = useState<{ venueName?: string; name?: string; genres?: string; instruments?: string; emailOrPhone?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialProvider, setSocialProvider] = useState<'google' | 'apple' | 'facebook' | 'x' | null>(null);
 
   const validate = () => {
-    const e: { email?: string; password?: string; confirm?: string; name?: string } = {};
-    if (!name.trim()) e.name = "Venue name is required";
-    if (!email.trim()) e.email = "Business email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
-    
-    if (!password.trim()) e.password = "Password is required";
-    else if (password.length < 8) e.password = "Password must be at least 8 characters";
-    
-    if (confirm !== password) e.confirm = "Passwords do not match";
+    const e: any = {};
+    if (!venueName.trim()) e.venueName = "Venue name is required";
+    if (!name.trim()) e.name = "Your name is required";
+    if (genres.length === 0) e.genres = "At least one genre is required";
+    if (instruments.length === 0) e.instruments = "At least one instrument is required";
+    if (!emailOrPhone.trim()) e.emailOrPhone = "Email or phone is required";
+    else if (emailOrPhone.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone)) {
+      e.emailOrPhone = "Invalid email format";
+    }
     
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSignup = () => {
-    if (validate()) {
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onAuthSuccess(email, name);
-      }, 1200);
-    }
+  const handleSocialSignup = async (provider: 'google' | 'apple' | 'facebook' | 'x') => {
+    setSocialProvider(provider);
+    setIsSubmitting(true);
+    // TODO: Implement actual social login
+    setTimeout(() => {
+      setIsSubmitting(false);
+      onAuthSuccess(emailOrPhone, name);
+      navigate(AppView.PROFILE_COMPLETION);
+    }, 1500);
+  };
+
+  const handleEmailSignup = async () => {
+    if (!validate()) return;
+    setIsSubmitting(true);
+    // TODO: Implement actual signup API
+    setTimeout(() => {
+      setIsSubmitting(false);
+      onAuthSuccess(emailOrPhone, name);
+      navigate(AppView.TWO_FACTOR_SETUP);
+    }, 1200);
+  };
+
+  const toggleGenre = (genre: string) => {
+    setGenres(prev => 
+      prev.includes(genre) 
+        ? prev.filter(g => g !== genre)
+        : [...prev, genre]
+    );
+  };
+
+  const toggleInstrument = (instrument: string) => {
+    setInstruments(prev => 
+      prev.includes(instrument) 
+        ? prev.filter(i => i !== instrument)
+        : [...prev, instrument]
+    );
   };
 
   return (
@@ -46,65 +85,174 @@ const SignupVenue: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
         <button onClick={() => navigate(AppView.LANDING)} className="size-11 rounded-2xl bg-surface-dark flex items-center justify-center text-slate-400">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Venue Account</span>
-        <div className="size-11"></div>
+        <h1 className="text-white text-lg font-black flex-1 text-center tracking-tight">Venue Sign Up</h1>
+        <div className="w-11"></div>
       </header>
 
-      <main className="flex-1 flex flex-col justify-center space-y-10">
-        <div className="space-y-2">
-          <h1 className="text-5xl font-extrabold tracking-tighter">Register Venue.</h1>
-          <p className="text-slate-500 font-medium">Streamline your booking workflow.</p>
+      <main className="flex-1 overflow-y-auto px-5 py-8 space-y-8 hide-scrollbar">
+        {/* Social Login */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Quick Sign Up</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleSocialSignup('google')}
+              disabled={isSubmitting}
+              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              <span className="text-sm font-medium">Google</span>
+            </button>
+            <button
+              onClick={() => handleSocialSignup('apple')}
+              disabled={isSubmitting}
+              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.8-1.03 0-2.12-.15-3.08-.8l-3.66 2.84c.98 1.83 2.87 3.06 5.03 3.06 3.05 0 5.5-2.45 5.5-5.5s-2.45-5.5-5.5-5.5c-2.16 0-4.05 1.23-5.03 3.06l3.66 2.84c.96-.65 2.05-.8 3.08-.8z"/>
+              </svg>
+              <span className="text-sm font-medium">Apple</span>
+            </button>
+            <button
+              onClick={() => handleSocialSignup('facebook')}
+              disabled={isSubmitting}
+              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12 5.373 12 12 12zm0 0"/>
+              </svg>
+              <span className="text-sm font-medium">Facebook</span>
+            </button>
+            <button
+              onClick={() => handleSocialSignup('x')}
+              disabled={isSubmitting}
+              className="h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              <span className="text-sm font-medium">X</span>
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Work Email</label>
-            <input 
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); if(errors.email) setErrors({...errors, email: undefined}); }}
-              className={`w-full h-16 bg-surface-dark border-2 rounded-2xl px-6 font-bold outline-none transition-all ${errors.email ? 'border-red-500/50' : 'border-white/5 focus:border-primary'}`}
-              placeholder="booking@venue.com"
-            />
-            {errors.email && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1">{errors.email}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Password</label>
-            <input 
-              type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); if(errors.password) setErrors({...errors, password: undefined}); }}
-              className={`w-full h-16 bg-surface-dark border-2 rounded-2xl px-6 font-bold outline-none transition-all ${errors.password ? 'border-red-500/50' : 'border-white/5 focus:border-primary'}`}
-              placeholder="Min. 8 characters"
-            />
-            {errors.password && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1">{errors.password}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Confirm Password</label>
-            <input 
-              type="password"
-              value={confirm}
-              onChange={(e) => { setConfirm(e.target.value); if(errors.confirm) setErrors({...errors, confirm: undefined}); }}
-              className={`w-full h-16 bg-surface-dark border-2 rounded-2xl px-6 font-bold outline-none transition-all ${errors.confirm ? 'border-red-500/50' : 'border-white/5 focus:border-primary'}`}
-              placeholder="Repeat password"
-            />
-            {errors.confirm && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1">{errors.confirm}</p>}
-          </div>
+        <div className="flex items-center gap-4 py-2">
+          <div className="flex-1 h-px bg-slate-700"></div>
+          <span className="text-slate-500 text-xs font-medium">OR</span>
+          <div className="flex-1 h-px bg-slate-700"></div>
         </div>
 
-        <button 
-          onClick={handleSignup}
-          disabled={isSubmitting}
-          className="w-full h-18 bg-primary text-white font-black text-xl rounded-[1.75rem] shadow-2xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-        >
-          {isSubmitting ? 'Creating...' : 'Create Account'}
-          <span className="material-symbols-outlined">arrow_forward</span>
-        </button>
+        {/* Email/Phone Signup */}
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Venue Name</label>
+              <input 
+                value={venueName}
+                onChange={(e) => {
+                  setVenueName(e.target.value);
+                  if (errors.venueName) setErrors({ ...errors, venueName: undefined });
+                }}
+                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
+                placeholder="The Blue Note" 
+              />
+              {errors.venueName && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.venueName}</p>}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Your Name</label>
+              <input 
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({ ...errors, name: undefined });
+                }}
+                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
+                placeholder="John Doe" 
+              />
+              {errors.name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.name}</p>}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Genre (Multi-select)</label>
+              <div className="relative">
+                <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+                  {GENRE_OPTIONS.map(genre => (
+                    <button
+                      key={genre}
+                      type="button"
+                      onClick={() => toggleGenre(genre)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        genres.includes(genre)
+                          ? 'bg-primary text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {errors.genres && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.genres}</p>}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Instruments Needed (Multi-select)</label>
+              <div className="relative">
+                <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+                  {INSTRUMENT_OPTIONS.map(instrument => (
+                    <button
+                      key={instrument}
+                      type="button"
+                      onClick={() => toggleInstrument(instrument)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        instruments.includes(instrument)
+                          ? 'bg-accent-cyan text-black'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {instrument}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {errors.instruments && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.instruments}</p>}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Email or Phone</label>
+              <input 
+                value={emailOrPhone}
+                onChange={(e) => {
+                  setEmailOrPhone(e.target.value);
+                  if (errors.emailOrPhone) setErrors({ ...errors, emailOrPhone: undefined });
+                }}
+                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white placeholder:text-slate-600" 
+                placeholder="venue@example.com or (555) 123-4567" 
+              />
+              {errors.emailOrPhone && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 mt-1">{errors.emailOrPhone}</p>}
+            </div>
+          </div>
+
+          <button 
+            onClick={handleEmailSignup}
+            disabled={isSubmitting}
+            className={`w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all ${
+              isSubmitting ? 'bg-slate-800 text-slate-600' : 'bg-primary text-white shadow-primary/40 active:scale-[0.97]'
+            }`}
+          >
+            {isSubmitting ? 'Creating Account...' : 'Continue with Email'}
+            {!isSubmitting && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
+          </button>
+        </div>
       </main>
 
       <div className="pb-10 text-center">
-        <button onClick={() => navigate(AppView.LOGIN)} className="text-slate-500 font-bold text-xs">Already registered? <span className="text-white">Log in</span></button>
+        <button onClick={() => navigate(AppView.LOGIN)} className="text-slate-500 font-bold text-xs">Already have an account? <span className="text-white">Log in</span></button>
       </div>
     </div>
   );
