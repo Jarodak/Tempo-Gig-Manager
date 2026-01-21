@@ -62,18 +62,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [gigs, setGigs] = useState<Gig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [adminSecret, setAdminSecret] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    return localStorage.getItem('admin_token');
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const fetchData = async (resource: string) => {
     try {
       const response = await fetch(`/.netlify/functions/admin?resource=${resource}`, {
-        headers: { 'X-Admin-Secret': adminSecret },
+        headers: { 'X-Admin-Token': authToken || '' },
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('admin_token');
+          setAuthToken(null);
+          setIsAuthenticated(false);
+        }
+        throw new Error(data.error);
+      }
       return data;
     } catch (err) {
       setError((err as Error).message);
@@ -124,7 +136,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
     try {
       const response = await fetch(`/.netlify/functions/admin?resource=${resource}&id=${id}`, {
         method: 'DELETE',
-        headers: { 'X-Admin-Secret': adminSecret },
+        headers: { 'X-Admin-Token': authToken || '' },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -145,13 +157,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
-    const data = await fetchData('stats');
-    if (data) {
+    
+    try {
+      const response = await fetch('/.netlify/functions/admin?resource=login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      // Save token and mark as authenticated
+      localStorage.setItem('admin_token', data.token);
+      setAuthToken(data.token);
       setIsAuthenticated(true);
-      setStats(data.stats);
+      
+      // Load initial data
+      const statsData = await fetchData('stats');
+      if (statsData) {
+        setStats(statsData.stats);
+      }
+    } catch (err) {
+      setError((err as Error).message);
     }
+    
     setLoading(false);
   };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    setAuthToken(null);
+    setIsAuthenticated(false);
+    setUsername('');
+    setPassword('');
+  };
+  
+  // Check if already authenticated on mount
+  useEffect(() => {
+    if (authToken) {
+      setIsAuthenticated(true);
+      loadOverview();
+    }
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -185,16 +236,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
               <span className="material-symbols-outlined text-3xl text-primary">admin_panel_settings</span>
             </div>
             <h1 className="text-3xl font-black">Admin Dashboard</h1>
-            <p className="text-slate-500">Enter admin secret to continue</p>
+            <p className="text-slate-500">Sign in to continue</p>
           </div>
           
           <div className="space-y-4">
             <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              className="w-full h-14 bg-surface-dark border-2 border-white/10 rounded-2xl px-4 font-medium outline-none focus:border-primary"
+            />
+            <input
               type="password"
-              value={adminSecret}
-              onChange={(e) => setAdminSecret(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="Admin Secret"
+              placeholder="Password"
               className="w-full h-14 bg-surface-dark border-2 border-white/10 rounded-2xl px-4 font-medium outline-none focus:border-primary"
             />
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -232,12 +290,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
               <p className="text-xs text-slate-500">Tempo Gig Manager</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate(AppView.LANDING)}
-            className="size-10 rounded-xl bg-surface-dark flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              className="h-10 px-4 rounded-xl bg-surface-dark flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">logout</span>
+              Logout
+            </button>
+            <button
+              onClick={() => navigate(AppView.LANDING)}
+              className="size-10 rounded-xl bg-surface-dark flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
         </div>
       </header>
 

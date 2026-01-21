@@ -176,6 +176,17 @@ export const handler = async (event) => {
     await sql`CREATE INDEX IF NOT EXISTS idx_artists_user_id ON artists(user_id);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_bands_user_id ON bands(user_id);`;
 
+    // Admin users table
+    await sql`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+        username text UNIQUE NOT NULL,
+        password_hash text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        last_login timestamptz
+      );
+    `;
+
     return json(200, { ok: true });
   } catch (err) {
     console.error('Migration error:', err);

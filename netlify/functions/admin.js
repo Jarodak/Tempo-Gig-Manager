@@ -1,18 +1,19 @@
 // Admin API endpoint for dashboard management
-// Protected by ADMIN_SECRET environment variable
+// Protected by admin_users table authentication
 
 import { checkDb, json } from './_db.js';
 
+// Simple hash function for password (use bcrypt in production)
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + 'tempo_salt_2024');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const handler = async (event) => {
-  const { httpMethod, queryStringParameters, headers } = event;
-  
-  // Check admin authorization
-  const adminSecret = process.env.ADMIN_SECRET;
-  const providedSecret = headers['x-admin-secret'] || queryStringParameters?.secret;
-  
-  if (adminSecret && providedSecret !== adminSecret) {
-    return json(401, { error: 'Unauthorized' });
-  }
+  const { httpMethod, queryStringParameters, headers, body } = event;
   
   // Handle CORS preflight
   if (httpMethod === 'OPTIONS') {
@@ -20,7 +21,7 @@ export const handler = async (event) => {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Secret',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
         'Access-Control-Allow-Methods': 'GET, POST, DELETE',
       },
       body: '',
@@ -30,6 +31,60 @@ export const handler = async (event) => {
   try {
     const sql = checkDb();
     const resource = queryStringParameters?.resource;
+    
+    // Login endpoint - no auth required
+    if (httpMethod === 'POST' && resource === 'login') {
+      const { username, password } = JSON.parse(body || '{}');
+      
+      if (!username || !password) {
+        return json(400, { error: 'Username and password required' });
+      }
+      
+      const passwordHash = await hashPassword(password);
+      
+      const [admin] = await sql`
+        SELECT id::text, username FROM admin_users 
+        WHERE username = ${username} AND password_hash = ${passwordHash}
+      `;
+      
+      if (!admin) {
+        return json(401, { error: 'Invalid credentials' });
+      }
+      
+      // Update last login
+      await sql`UPDATE admin_users SET last_login = now() WHERE id = ${admin.id}::uuid`;
+      
+      // Create simple token (use JWT in production)
+      const token = Buffer.from(JSON.stringify({ 
+        id: admin.id, 
+        username: admin.username,
+        exp: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+      })).toString('base64');
+      
+      return json(200, { token, username: admin.username });
+    }
+    
+    // All other endpoints require authentication
+    const authToken = headers['x-admin-token'];
+    
+    if (!authToken) {
+      return json(401, { error: 'Authentication required' });
+    }
+    
+    try {
+      const tokenData = JSON.parse(Buffer.from(authToken, 'base64').toString());
+      if (tokenData.exp < Date.now()) {
+        return json(401, { error: 'Token expired' });
+      }
+      
+      // Verify admin still exists
+      const [admin] = await sql`SELECT id FROM admin_users WHERE id = ${tokenData.id}::uuid`;
+      if (!admin) {
+        return json(401, { error: 'Invalid token' });
+      }
+    } catch (e) {
+      return json(401, { error: 'Invalid token' });
+    }
     
     // GET - Fetch data
     if (httpMethod === 'GET') {
