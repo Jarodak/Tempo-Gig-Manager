@@ -10,7 +10,7 @@ export const handler = async (event) => {
       if (params.id) {
         const [artist] = await sql`
           SELECT id::text, name, genre, instruments, zip_code, gender, email_or_phone,
-                 preview_song, profile_picture, city_of_origin, open_to_work, face_verified,
+                 preview_song, profile_picture, city_of_origin, open_to_work, bio, face_verified,
                  user_id::text, created_at, updated_at
           FROM artists WHERE id = ${params.id}::uuid
         `;
@@ -20,7 +20,7 @@ export const handler = async (event) => {
       if (params.user_id) {
         const [artist] = await sql`
           SELECT id::text, name, genre, instruments, zip_code, gender, email_or_phone,
-                 preview_song, profile_picture, city_of_origin, open_to_work, face_verified,
+                 preview_song, profile_picture, city_of_origin, open_to_work, bio, face_verified,
                  user_id::text, created_at, updated_at
           FROM artists WHERE user_id = ${params.user_id}::uuid
         `;
@@ -42,19 +42,19 @@ export const handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
       const { name, genre, instruments, zip_code, gender, email_or_phone, 
-              preview_song, profile_picture, city_of_origin, open_to_work, user_id } = body;
+              preview_song, profile_picture, city_of_origin, open_to_work, bio, user_id } = body;
       
-      if (!name || !genre || !instruments || !zip_code || !gender || !email_or_phone || !user_id) {
-        return json(400, { error: 'Missing required fields' });
+      if (!name || !genre || !instruments || !user_id) {
+        return json(400, { error: 'Missing required fields: name, genre, instruments, user_id' });
       }
       
       const [artist] = await sql`
         INSERT INTO artists (name, genre, instruments, zip_code, gender, email_or_phone,
-                            preview_song, profile_picture, city_of_origin, open_to_work, user_id)
-        VALUES (${name}, ${genre}, ${instruments}, ${zip_code}, ${gender}, ${email_or_phone},
-                ${preview_song}, ${profile_picture}, ${city_of_origin}, ${open_to_work ?? true}, ${user_id}::uuid)
+                            preview_song, profile_picture, city_of_origin, open_to_work, bio, user_id)
+        VALUES (${name}, ${genre}, ${instruments}, ${zip_code || null}, ${gender || null}, ${email_or_phone || null},
+                ${preview_song || null}, ${profile_picture || null}, ${city_of_origin || null}, ${open_to_work ?? true}, ${bio || null}, ${user_id}::uuid)
         RETURNING id::text, name, genre, instruments, zip_code, gender, email_or_phone,
-                  preview_song, profile_picture, city_of_origin, open_to_work, face_verified,
+                  preview_song, profile_picture, city_of_origin, open_to_work, bio, face_verified,
                   user_id::text, created_at, updated_at
       `;
       
@@ -81,11 +81,12 @@ export const handler = async (event) => {
           profile_picture = COALESCE(${updates.profile_picture}, profile_picture),
           city_of_origin = COALESCE(${updates.city_of_origin}, city_of_origin),
           open_to_work = COALESCE(${updates.open_to_work}, open_to_work),
+          bio = COALESCE(${updates.bio}, bio),
           face_verified = COALESCE(${updates.face_verified}, face_verified),
           updated_at = now()
         WHERE id = ${id}::uuid
         RETURNING id::text, name, genre, instruments, zip_code, gender, email_or_phone,
-                  preview_song, profile_picture, city_of_origin, open_to_work, face_verified,
+                  preview_song, profile_picture, city_of_origin, open_to_work, bio, face_verified,
                   user_id::text, created_at, updated_at
       `;
       

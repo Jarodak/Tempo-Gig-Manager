@@ -36,8 +36,8 @@ export const handler = async (event) => {
       const { name, email, phone, address, type, esrb_rating, typical_genres, 
               stage_details, equipment_onsite, special_instructions, user_id } = body;
       
-      if (!name || !email || !phone || !address || !type || !esrb_rating || !user_id) {
-        return json(400, { error: 'Missing required fields' });
+      if (!name || !type || !esrb_rating || !user_id) {
+        return json(400, { error: 'Missing required fields: name, type, esrb_rating, user_id' });
       }
       
       const [venue] = await sql`
