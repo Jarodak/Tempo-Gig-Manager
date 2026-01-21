@@ -1,27 +1,69 @@
 
-import React, { useState, useRef } from 'react';
-import { AppView } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { AppView, PaymentType, EsrbRating } from '../types';
 import { createGig } from '../apiClient';
 
 interface CreateGigProps {
   navigate: (view: AppView) => void;
 }
 
+const GENRE_OPTIONS = [
+  'Jazz', 'Rock', 'Pop', 'Electronic', 'Hip Hop', 'R&B', 'Country', 
+  'Folk', 'Classical', 'Metal', 'Punk', 'Indie', 'Blues'
+];
+
+const EQUIPMENT_OPTIONS = [
+  'PA System', 'Microphones', 'Drum Kit', 'Piano', 'Lighting System',
+  'Stage Monitors', 'DJ Booth', 'Backline', 'Cables', 'Power Distribution'
+];
+
 const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [isRecurring, setIsRecurring] = useState(false);
-  const [isTipsOnly, setIsTipsOnly] = useState(false);
   const [frequency, setFrequency] = useState('weekly');
   const [selectedDays, setSelectedDays] = useState<string[]>(['F']);
-  const [genre, setGenre] = useState('Jazz');
+  const [sameBandForAll, setSameBandForAll] = useState(true);
   
   // Form State
   const [title, setTitle] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
+  const [date, setDate] = useState('');
+  const [loadInTime, setLoadInTime] = useState('20:00');
+  const [curfewTime, setCurfewTime] = useState('23:00');
+  const [paymentType, setPaymentType] = useState<PaymentType>(PaymentType.FLAT_FEE);
   const [budget, setBudget] = useState('');
+  const [esrbRating, setEsrbRating] = useState<EsrbRating>(EsrbRating.FAMILY);
+  const [equipmentProvided, setEquipmentProvided] = useState<string[]>([]);
   const [requirements, setRequirements] = useState('');
-  const [errors, setErrors] = useState<{ title?: string; budget?: string; submit?: string }>({});
+  const [recurringEndDate, setRecurringEndDate] = useState('');
+  const [postingSchedule, setPostingSchedule] = useState<'immediate' | 'scheduled'>('immediate');
+  const [daysBeforePost, setDaysBeforePost] = useState(7);
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autofillApplied, setAutofillApplied] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Autofill from venue profile on mount
+  useEffect(() => {
+    // TODO: Load from actual venue profile API
+    const venueProfile = {
+      name: 'The Blue Note',
+      typicalGenres: ['Jazz', 'Blues'],
+      esrbRating: EsrbRating.FAMILY,
+      equipmentOnsite: ['PA System', 'Microphones', 'Drum Kit'],
+    };
+    
+    setGenres(venueProfile.typicalGenres);
+    setEsrbRating(venueProfile.esrbRating);
+    setEquipmentProvided(venueProfile.equipmentOnsite);
+    
+    // Set default title
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    setTitle(`${venueProfile.name} – ${dateStr}`);
+    setAutofillApplied(true);
+  }, []);
 
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
@@ -29,6 +71,24 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
     } else {
       setSelectedDays([...selectedDays, day]);
     }
+  };
+
+  const toggleGenre = (genre: string) => {
+    setGenres(prev => 
+      prev.includes(genre) 
+        ? prev.filter(g => g !== genre)
+        : [...prev, genre]
+    );
+    if (errors.genres) setErrors({ ...errors, genres: undefined });
+  };
+
+  const toggleEquipment = (equipment: string) => {
+    setEquipmentProvided(prev => 
+      prev.includes(equipment) 
+        ? prev.filter(e => e !== equipment)
+        : [...prev, equipment]
+    );
+    if (errors.equipment) setErrors({ ...errors, equipment: undefined });
   };
 
   const handleFormat = (command: string) => {
@@ -39,19 +99,26 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   };
 
   const validate = () => {
-    const newErrors: { title?: string; budget?: string } = {};
+    const newErrors: Record<string, string> = {};
+    
     if (!title.trim()) {
-      newErrors.title = 'Listing name is required';
-    } else if (title.length < 3) {
-      newErrors.title = 'Name must be at least 3 characters';
+      newErrors.title = 'Gig name is required';
     }
-
-    if (!isTipsOnly) {
-      if (!budget) {
-        newErrors.budget = 'Base pay is required';
-      } else if (parseFloat(budget) <= 0) {
-        newErrors.budget = 'Pay must be greater than $0';
-      }
+    
+    if (genres.length === 0) {
+      newErrors.genres = 'At least one genre is required';
+    }
+    
+    if (!date) {
+      newErrors.date = 'Date is required';
+    }
+    
+    if (paymentType !== PaymentType.TIPS && !budget) {
+      newErrors.budget = 'Payment amount is required';
+    }
+    
+    if (equipmentProvided.length === 0) {
+      newErrors.equipment = 'Equipment provided is required';
     }
 
     setErrors(newErrors);
@@ -67,16 +134,16 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
         title,
         venue: 'Main Stage',
         location: 'NYC',
-        date: 'Oct 14',
-        time: '9PM',
-        price: isTipsOnly ? 'Tips Only' : `$${budget}`,
-        genre,
+        date,
+        time: loadInTime,
+        price: paymentType === PaymentType.TIPS ? 'Tips Only' : `$${budget}`,
+        genre: genres[0],
         isVerified: true,
         image: '',
         isRecurring,
         frequency: isRecurring ? (frequency as any) : undefined,
         status: 'draft',
-        isTipsOnly,
+        isTipsOnly: paymentType === PaymentType.TIPS,
       });
       navigate(AppView.VENUE_DASHBOARD);
     } catch (err) {
@@ -165,30 +232,32 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           </div>
         </div>
 
-        {/* Play For Tips Toggle */}
+        {/* Payment Type Selector */}
         <div className="space-y-4">
-          <div className="bg-surface-dark rounded-[2rem] border border-border-dark overflow-hidden transition-all shadow-lg">
-            <div className="flex items-center justify-between p-6">
-              <div className="flex items-center gap-4">
-                <div className={`size-14 rounded-2xl flex items-center justify-center transition-all ${isTipsOnly ? 'bg-accent-cyan text-black shadow-lg shadow-accent-cyan/20' : 'bg-slate-800 text-slate-500'}`}>
-                  <span className="material-symbols-outlined text-3xl">volunteer_activism</span>
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-black text-base text-white">Play for Tips</span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">No Base Pay Required</span>
-                </div>
-              </div>
-              <button 
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Payment Type</label>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { value: PaymentType.TIPS, label: 'Tips Only', icon: 'volunteer_activism' },
+              { value: PaymentType.HOURLY, label: 'Hourly', icon: 'schedule' },
+              { value: PaymentType.FLAT_FEE, label: 'Flat Fee', icon: 'payments' },
+              { value: PaymentType.IN_KIND, label: 'In-Kind', icon: 'handshake' },
+            ].map(pt => (
+              <button
+                key={pt.value}
                 onClick={() => {
-                  setIsTipsOnly(!isTipsOnly);
-                  setBudget('');
-                  setErrors({ ...errors, budget: undefined });
+                  setPaymentType(pt.value);
+                  if (pt.value === PaymentType.TIPS) setBudget('');
                 }}
-                className={`w-14 h-8 rounded-full relative transition-all duration-300 ${isTipsOnly ? 'bg-accent-cyan' : 'bg-slate-700'}`}
+                className={`p-4 rounded-2xl border text-left transition-all ${
+                  paymentType === pt.value
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-white/10 text-slate-400 hover:border-white/20'
+                }`}
               >
-                <div className={`absolute top-1 size-6 bg-white rounded-full transition-all duration-300 shadow-sm ${isTipsOnly ? 'right-1' : 'left-1'}`}></div>
+                <span className="material-symbols-outlined text-2xl mb-2">{pt.icon}</span>
+                <div className="font-black text-sm">{pt.label}</div>
               </button>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -291,15 +360,15 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Formatted for Artist EPK view</p>
         </div>
 
-        {/* Budget & Category */}
+        {/* Budget & Genre */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Base Pay</label>
-            <div className={`flex items-center bg-surface-dark border rounded-2xl px-5 h-16 shadow-lg transition-all ${isTipsOnly ? 'opacity-50 grayscale cursor-not-allowed' : ''} ${errors.budget ? 'border-red-500/50 ring-2 ring-red-500/10' : 'border-border-dark border-none'}`}>
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Payment Amount</label>
+            <div className={`flex items-center bg-surface-dark border rounded-2xl px-5 h-16 shadow-lg transition-all ${paymentType === PaymentType.TIPS ? 'opacity-50 grayscale cursor-not-allowed' : ''} ${errors.budget ? 'border-red-500/50 ring-2 ring-red-500/10' : 'border-border-dark border-none'}`}>
               <span className={`font-black text-lg mr-2 ${errors.budget ? 'text-red-500' : 'text-slate-500'}`}>$</span>
               <input 
-                value={isTipsOnly ? '0.00' : budget}
-                disabled={isTipsOnly}
+                value={paymentType === PaymentType.TIPS ? '0.00' : budget}
+                disabled={paymentType === PaymentType.TIPS}
                 onChange={(e) => {
                   setBudget(e.target.value);
                   if (errors.budget) setErrors({ ...errors, budget: undefined });
@@ -309,25 +378,91 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                 type="number" 
               />
             </div>
-            {isTipsOnly && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Tips Only Enabled</p>}
+            {paymentType === PaymentType.TIPS && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Tips Only Enabled</p>}
             {errors.budget && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 animate-in fade-in slide-in-from-left-2">{errors.budget}</p>}
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Genre Tag</label>
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">ESRB Rating</label>
             <div className="relative">
               <select
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
+                value={esrbRating}
+                onChange={(e) => setEsrbRating(e.target.value as EsrbRating)}
                 className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white"
               >
-                <option>Jazz</option>
-                <option>Rock</option>
-                <option>Indie</option>
-                <option>EDM</option>
+                <option value={EsrbRating.FAMILY}>Family Friendly</option>
+                <option value={EsrbRating.ADULTS_ONLY}>21+</option>
+                <option value={EsrbRating.NSFW}>NSFW</option>
               </select>
               <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">unfold_more</span>
             </div>
+            {autofillApplied && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Autofilled from venue</p>}
           </div>
+        </div>
+
+        {/* Genre Multi-Select */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+            Genre(s) <span className="text-red-500">*</span>
+            {autofillApplied && <span className="text-accent-cyan ml-2">Autofilled</span>}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {genres.map(g => (
+              <span key={g} className="px-3 py-1.5 bg-primary text-white text-xs font-black rounded-full flex items-center gap-1">
+                {g}
+                <button onClick={() => toggleGenre(g)} className="ml-1 hover:text-red-300">×</button>
+              </span>
+            ))}
+          </div>
+          <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+            {GENRE_OPTIONS.map(genre => (
+              <button
+                key={genre}
+                type="button"
+                onClick={() => toggleGenre(genre)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  genres.includes(genre)
+                    ? 'bg-primary text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {genre}
+              </button>
+            ))}
+          </div>
+          {errors.genres && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1">{errors.genres}</p>}
+        </div>
+
+        {/* Equipment Provided Multi-Select */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+            Equipment Provided <span className="text-red-500">*</span>
+            {autofillApplied && <span className="text-accent-cyan ml-2">Autofilled</span>}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {equipmentProvided.map(e => (
+              <span key={e} className="px-3 py-1.5 bg-accent-cyan text-black text-xs font-black rounded-full flex items-center gap-1">
+                {e}
+                <button onClick={() => toggleEquipment(e)} className="ml-1 hover:text-red-600">×</button>
+              </span>
+            ))}
+          </div>
+          <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
+            {EQUIPMENT_OPTIONS.map(equipment => (
+              <button
+                key={equipment}
+                type="button"
+                onClick={() => toggleEquipment(equipment)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  equipmentProvided.includes(equipment)
+                    ? 'bg-accent-cyan text-black'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {equipment}
+              </button>
+            ))}
+          </div>
+          {errors.equipment && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1">{errors.equipment}</p>}
         </div>
 
         <div className="h-20"></div>

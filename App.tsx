@@ -18,6 +18,8 @@ import ArtistProfile from './pages/ArtistProfile';
 import VenueRoster from './pages/VenueRoster';
 import VenueDiscover from './pages/VenueDiscover';
 import ArtistRoster from './pages/ArtistRoster';
+import BandProfile from './pages/BandProfile';
+import CalendarAvailability from './pages/CalendarAvailability';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SignupVenue from './pages/SignupVenue';
@@ -125,6 +127,10 @@ const App: React.FC = () => {
         return <ArtistRoster navigate={(v) => setCurrentView(v)} />;
       case AppView.AGREEMENT:
         return <Agreement navigate={(v) => setCurrentView(v)} />;
+      case AppView.BAND_PROFILE:
+        return <BandProfile navigate={(v) => setCurrentView(v)} />;
+      case AppView.CALENDAR:
+        return <CalendarAvailability navigate={(v) => setCurrentView(v)} />;
       
       default:
         return <Landing navigate={(v) => setCurrentView(v)} onInvitedClick={() => { setIsInvited(true); setCurrentView(AppView.SIGNUP_ARTIST); }} />;
