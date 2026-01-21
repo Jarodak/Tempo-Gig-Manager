@@ -61,7 +61,8 @@ const App: React.FC = () => {
   const handleLogin = (selectedRole: UserRole, email?: string) => {
     setRole(selectedRole);
     setIsInvited(false);
-    setCurrentUser({ role: selectedRole, email });
+    // Note: User is already stored by Login via services/auth.ts
+    // Don't overwrite with incomplete data
     if (selectedRole === UserRole.VENUE) {
       setCurrentView(AppView.VENUE_DASHBOARD);
     } else {
@@ -71,7 +72,8 @@ const App: React.FC = () => {
 
   const handleSignup = (selectedRole: UserRole, email?: string, name?: string) => {
     setRole(selectedRole);
-    setCurrentUser({ role: selectedRole, email, name });
+    // Note: User is already stored by SignupVenue/SignupArtist via services/auth.ts
+    // Don't overwrite with incomplete data
     if (selectedRole === UserRole.VENUE) {
       setCurrentView(AppView.VENUE_DASHBOARD);
     } else {
