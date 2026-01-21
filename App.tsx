@@ -25,6 +25,7 @@ import Login from './pages/Login';
 import SignupVenue from './pages/SignupVenue';
 import SignupArtist from './pages/SignupArtist';
 import AuthCallback from './pages/AuthCallback';
+import AdminDashboard from './pages/AdminDashboard';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.NONE);
@@ -37,6 +38,12 @@ const App: React.FC = () => {
     // Check for OAuth callback
     if (window.location.pathname === '/auth-callback' || window.location.search.includes('token=')) {
       setCurrentView(AppView.AUTH_CALLBACK);
+      return;
+    }
+    
+    // Check for admin route
+    if (window.location.pathname === '/admin') {
+      setCurrentView(AppView.ADMIN);
       return;
     }
     
@@ -140,6 +147,8 @@ const App: React.FC = () => {
         return <BandProfile navigate={(v) => setCurrentView(v)} />;
       case AppView.CALENDAR:
         return <CalendarAvailability navigate={(v) => setCurrentView(v)} />;
+      case AppView.ADMIN:
+        return <AdminDashboard navigate={(v) => setCurrentView(v)} />;
       
       default:
         return <Landing navigate={(v) => setCurrentView(v)} onInvitedClick={() => { setIsInvited(true); setCurrentView(AppView.SIGNUP_ARTIST); }} />;

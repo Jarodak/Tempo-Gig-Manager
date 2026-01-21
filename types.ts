@@ -48,6 +48,9 @@ export enum AppView {
   
   // Calendar
   CALENDAR = 'calendar',
+  
+  // Admin
+  ADMIN = 'admin',
 }
 
 export interface Venue {
