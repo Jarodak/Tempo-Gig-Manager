@@ -38,15 +38,7 @@ const Landing: React.FC<LandingProps> = ({ navigate, onInvitedClick }) => {
             <span className="material-symbols-outlined">mic_external_on</span>
           </button>
 
-          <div className="pt-6 space-y-6">
-            <button 
-              onClick={onInvitedClick}
-              className="group flex items-center justify-center gap-2 mx-auto py-2 px-4 rounded-xl border border-white/5 bg-white/5 active:bg-white/10 transition-all"
-            >
-              <span className="material-symbols-outlined text-slate-500 text-sm group-hover:text-primary transition-colors">mail</span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">Invited by a venue? Claim spot</span>
-            </button>
-
+          <div className="pt-6">
             <button 
               onClick={() => navigate(AppView.LOGIN)}
               className="text-slate-500 font-black uppercase text-[10px] tracking-[0.3em] hover:text-white transition-colors"
