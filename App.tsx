@@ -24,6 +24,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SignupVenue from './pages/SignupVenue';
 import SignupArtist from './pages/SignupArtist';
+import AuthCallback from './pages/AuthCallback';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.NONE);
@@ -31,8 +32,14 @@ const App: React.FC = () => {
   const [activeDay, setActiveDay] = useState<number>(13); 
   const [isInvited, setIsInvited] = useState<boolean>(false);
 
-  // Restore auth state on mount
+  // Restore auth state on mount and handle OAuth callback
   useEffect(() => {
+    // Check for OAuth callback
+    if (window.location.pathname === '/auth-callback' || window.location.search.includes('token=')) {
+      setCurrentView(AppView.AUTH_CALLBACK);
+      return;
+    }
+    
     const user = getCurrentUser();
     if (user) {
       setRole(user.role);
@@ -91,6 +98,8 @@ const App: React.FC = () => {
         return <SignupVenue navigate={(v) => setCurrentView(v)} onAuthSuccess={(email, name) => handleSignup(UserRole.VENUE, email, name)} />;
       case AppView.SIGNUP_ARTIST:
         return <SignupArtist navigate={(v) => setCurrentView(v)} onAuthSuccess={(email, name) => handleSignup(UserRole.ARTIST, email, name)} />;
+      case AppView.AUTH_CALLBACK:
+        return <AuthCallback navigate={(v) => setCurrentView(v)} onAuthSuccess={handleLogin} />;
       
       // Venue Views
       case AppView.TWO_FACTOR_SETUP:

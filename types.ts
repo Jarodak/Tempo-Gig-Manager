@@ -12,6 +12,7 @@ export enum AppView {
   LOGIN = 'login',
   SIGNUP_VENUE = 'signup_venue',
   SIGNUP_ARTIST = 'signup_artist',
+  AUTH_CALLBACK = 'auth_callback',
   TWO_FACTOR_SETUP = 'two_factor_setup',
   FACE_VERIFICATION = 'face_verification',
   PROFILE_COMPLETION = 'profile_completion',

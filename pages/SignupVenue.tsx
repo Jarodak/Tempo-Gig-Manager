@@ -43,31 +43,20 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
     return Object.keys(e).length === 0;
   };
 
-  const handleSocialSignup = async (provider: 'google' | 'apple' | 'facebook' | 'x') => {
+  const handleSocialSignup = (provider: 'google' | 'apple' | 'facebook' | 'x') => {
     setSocialProvider(provider);
-    setIsSubmitting(true);
     
-    try {
-      // Track signup attempt
-      await analyticsApi.track('signup_started', { method: provider, role: 'venue' });
-      
-      // For social login, we'd integrate with OAuth providers
-      // For now, create user with provider email
-      const email = `${provider}_${Date.now()}@tempo.app`;
-      const result = await signUp({ email, role: 'venue' });
-      
-      if (result.error) {
-        setErrors({ emailOrPhone: result.error });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      await analyticsApi.track('signup_completed', { method: provider, role: 'venue' });
-      onAuthSuccess(email, name || 'User');
-    } catch (err) {
-      setErrors({ emailOrPhone: 'Signup failed. Please try again.' });
-      setIsSubmitting(false);
-    }
+    // Map provider to OAuth endpoint
+    const providerMap: Record<string, string> = {
+      google: '/.netlify/functions/auth-google',
+      facebook: '/.netlify/functions/auth-facebook',
+      apple: '/.netlify/functions/auth-apple',
+      x: '/.netlify/functions/auth-twitter',
+    };
+    
+    // Redirect to OAuth provider with role
+    const authUrl = `${providerMap[provider]}?role=venue`;
+    window.location.href = authUrl;
   };
 
   const handleEmailSignup = async () => {
