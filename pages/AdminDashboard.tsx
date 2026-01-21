@@ -176,9 +176,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
       setAuthToken(data.token);
       setIsAuthenticated(true);
       
-      // Load initial data
-      const statsData = await fetchData('stats');
-      if (statsData) {
+      // Load initial data with the new token directly
+      const statsResponse = await fetch('/.netlify/functions/admin?resource=stats', {
+        headers: { 'X-Admin-Token': data.token },
+      });
+      const statsData = await statsResponse.json();
+      if (statsData?.stats) {
         setStats(statsData.stats);
       }
     } catch (err) {
