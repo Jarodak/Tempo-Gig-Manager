@@ -40,6 +40,17 @@ export const handler = async (event) => {
         return json(400, { error: 'Username and password required' });
       }
       
+      // Ensure admin_users table exists
+      await sql`
+        CREATE TABLE IF NOT EXISTS admin_users (
+          id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+          username text UNIQUE NOT NULL,
+          password_hash text NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          last_login timestamptz
+        )
+      `;
+      
       const passwordHash = await hashPassword(password);
       
       const [admin] = await sql`
