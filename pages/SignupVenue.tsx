@@ -35,6 +35,7 @@ const EQUIPMENT_OPTIONS = [
 const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) => {
   // Account fields
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   
   // Venue profile fields
   const [venueName, setVenueName] = useState('');
@@ -54,6 +55,8 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
     const e: Record<string, string> = {};
     if (!email.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
+    if (!password.trim()) e.password = "Password is required";
+    else if (password.length < 8) e.password = "Password must be at least 8 characters";
     if (!venueName.trim()) e.venueName = "Venue name is required";
     if (!address.trim()) e.address = "Address is required";
     if (genres.length === 0) e.genres = "Select at least one genre";
@@ -161,6 +164,11 @@ const SignupVenue: React.FC<SignupVenueProps> = ({ navigate, onAuthSuccess }) =>
             <label className="text-xs text-slate-400 ml-1">Email</label>
             <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="venue@example.com" />
             {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>}
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-primary" placeholder="Min. 8 characters" />
+            {errors.password && <p className="text-red-500 text-xs mt-1 ml-1">{errors.password}</p>}
           </div>
         </div>
 

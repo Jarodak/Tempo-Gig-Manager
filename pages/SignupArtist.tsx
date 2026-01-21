@@ -21,6 +21,7 @@ const INSTRUMENT_OPTIONS = [
 const SignupArtist: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
   // Account fields
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   
   // Artist profile fields
   const [name, setName] = useState('');
@@ -37,6 +38,8 @@ const SignupArtist: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
     const e: Record<string, string> = {};
     if (!email.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format";
+    if (!password.trim()) e.password = "Password is required";
+    else if (password.length < 8) e.password = "Password must be at least 8 characters";
     if (!name.trim()) e.name = "Stage name is required";
     if (genres.length === 0) e.genres = "Select at least one genre";
     if (instruments.length === 0) e.instruments = "Select at least one instrument";
@@ -147,6 +150,11 @@ const SignupArtist: React.FC<SignupProps> = ({ navigate, onAuthSuccess }) => {
             <label className="text-xs text-slate-400 ml-1">Email</label>
             <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-accent-cyan" placeholder="artist@music.com" />
             {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>}
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 ml-1">Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-14 bg-surface-dark border border-white/10 rounded-xl px-4 font-medium outline-none focus:border-accent-cyan" placeholder="Min. 8 characters" />
+            {errors.password && <p className="text-red-500 text-xs mt-1 ml-1">{errors.password}</p>}
           </div>
         </div>
 
