@@ -409,7 +409,6 @@ const VenueProfile: React.FC<VenueProfileProps> = ({ navigate, logout }) => {
                 placeholder="Load in through back entrance, parking available..."
               />
             </div>
-            </div>
 
             <button
               onClick={handleSave}
