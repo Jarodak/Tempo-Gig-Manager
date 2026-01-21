@@ -414,7 +414,10 @@ const VenueProfile: React.FC<VenueProfileProps> = ({ navigate, logout }) => {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className={'w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all ' + (isSaving ? 'bg-slate-800 text-slate-600' : 'bg-primary text-white shadow-primary/40 active:scale-[0.97]')}
+              className={isSaving 
+                ? "w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all bg-slate-800 text-slate-600"
+                : "w-full h-16 rounded-2xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl transition-all bg-primary text-white shadow-primary/40 active:scale-[0.97]"
+              }
             >
               {isSaving ? 'Saving...' : (isAddingNew ? 'Add Venue' : 'Save Changes')}
               {!isSaving && <span className="material-symbols-outlined text-2xl">save</span>}
