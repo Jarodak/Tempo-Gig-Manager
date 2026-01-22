@@ -83,6 +83,10 @@ export const handler = async (event) => {
     return json(405, { error: 'Method not allowed' });
   } catch (err) {
     console.error('users error:', err);
+    // Handle duplicate email/phone constraint violation
+    if (err.message?.includes('duplicate key') || err.message?.includes('unique constraint') || err.code === '23505') {
+      return json(409, { error: 'An account with this email already exists' });
+    }
     return json(500, { error: 'Operation failed', details: err.message });
   }
 };

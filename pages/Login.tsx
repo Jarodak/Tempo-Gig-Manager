@@ -27,7 +27,7 @@ const Login: React.FC<LoginProps> = ({ navigate, onAuthSuccess }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleLogin = async (role: UserRole) => {
+  const handleLogin = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
     
@@ -88,22 +88,13 @@ const Login: React.FC<LoginProps> = ({ navigate, onAuthSuccess }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={() => handleLogin(UserRole.VENUE)}
-            disabled={isSubmitting}
-            className="h-16 bg-primary/10 border border-primary/30 text-primary font-black text-sm uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-lg hover:bg-primary/20"
-          >
-            Venue Login
-          </button>
-          <button 
-            onClick={() => handleLogin(UserRole.ARTIST)}
-            disabled={isSubmitting}
-            className="h-16 bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan font-black text-sm uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-lg hover:bg-accent-cyan/20"
-          >
-            Artist Login
-          </button>
-        </div>
+        <button 
+          onClick={handleLogin}
+          disabled={isSubmitting}
+          className="w-full h-16 bg-primary font-black text-lg uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-lg shadow-primary/30"
+        >
+          {isSubmitting ? 'Logging in...' : 'Log In'}
+        </button>
 
         {/* Social Login */}
         <div className="space-y-4">
