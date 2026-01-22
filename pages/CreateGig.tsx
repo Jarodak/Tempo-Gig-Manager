@@ -568,7 +568,13 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                 </div>
               </div>
               <button 
-                onClick={() => setIsRecurring(!isRecurring)}
+                onClick={() => {
+                  if (!isRecurring && selectedDate) {
+                    // When enabling recurring, set default day to match selected date
+                    setSelectedDays([selectedDate.getDay()]);
+                  }
+                  setIsRecurring(!isRecurring);
+                }}
                 className={`w-14 h-8 rounded-full relative transition-all duration-300 ${isRecurring ? 'bg-primary' : 'bg-slate-700'}`}
               >
                 <div className={`absolute top-1 size-6 bg-white rounded-full transition-all duration-300 shadow-sm ${isRecurring ? 'right-1' : 'left-1'}`}></div>
