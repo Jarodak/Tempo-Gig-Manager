@@ -1,23 +1,43 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, Artist } from '../types';
+import { artistsApi } from '../utils/api';
 
 interface ArtistRankingProps {
   navigate: (view: AppView) => void;
 }
 
-const APPLICANTS: Artist[] = [
-  { id: '1', name: 'The Midnight Echo', genre: 'Indie Rock', rating: 4.9, type: '4 piece band', avgDraw: '250+', image: 'https://picsum.photos/seed/art1/200/200' },
-  { id: '2', name: 'Luna Soul', genre: 'R&B / Neo-Soul', rating: 4.7, type: 'Soloist', avgDraw: '180+', image: 'https://picsum.photos/seed/art2/200/200' },
-  { id: '3', name: 'Velvet Undergrounds', genre: 'Alternative', rating: 4.5, type: '3 piece band', avgDraw: '200+', image: 'https://picsum.photos/seed/art3/200/200' },
-  { id: '4', name: 'Neon Pulse', genre: 'Synth Wave', rating: 4.2, type: 'Duo', avgDraw: '150+', image: 'https://picsum.photos/seed/art4/200/200' },
-  { id: '5', name: 'The Backbeats', genre: 'Classic Rock', rating: 4.4, type: '5 piece band', avgDraw: '300+', image: 'https://picsum.photos/seed/art5/200/200' },
-];
 
 const ArtistRanking: React.FC<ArtistRankingProps> = ({ navigate }) => {
-  const [rankings, setRankings] = useState<string[]>(['1', '2']); // IDs of ranked artists
+  const [applicants, setApplicants] = useState<Artist[]>([]);
+  const [rankings, setRankings] = useState<string[]>([]); // IDs of ranked artists
   const [isSequenceActive, setIsSequenceActive] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadApplicants = async () => {
+      setLoading(true);
+      try {
+        const res = await artistsApi.list();
+        if (res.data?.artists) {
+          setApplicants(res.data.artists.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            genre: Array.isArray(a.genre) ? a.genre.join(', ') : a.genre || 'Various',
+            rating: 4.5,
+            type: 'Artist',
+            avgDraw: '—',
+            image: a.profile_picture || '',
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load applicants:', err);
+      }
+      setLoading(false);
+    };
+    loadApplicants();
+  }, []);
 
   const toggleRank = (id: string) => {
     if (rankings.includes(id)) {
@@ -85,7 +105,7 @@ const ArtistRanking: React.FC<ArtistRankingProps> = ({ navigate }) => {
           <div className="flex items-center gap-3 bg-surface-dark/50 p-3 rounded-2xl border border-primary/10">
             <span className="material-symbols-outlined text-primary text-xl animate-pulse">hourglass_top</span>
             <div className="flex-1">
-              <p className="text-xs text-slate-300">Awaiting <b>{APPLICANTS.find(a => a.id === rankings[0])?.name}</b></p>
+              <p className="text-xs text-slate-300">Awaiting <b>{applicants.find(a => a.id === rankings[0])?.name}</b></p>
               <p className="text-[9px] text-slate-500 uppercase font-black mt-0.5 tracking-tighter">Auto-advances to Rank 2 in 14h 22m</p>
             </div>
           </div>
@@ -101,7 +121,8 @@ const ArtistRanking: React.FC<ArtistRankingProps> = ({ navigate }) => {
 
           <div className="space-y-3">
             {rankings.map((rid, idx) => {
-              const artist = APPLICANTS.find(a => a.id === rid)!;
+              const artist = applicants.find(a => a.id === rid);
+              if (!artist) return null;
               return (
                 <div 
                   key={rid} 
@@ -158,7 +179,7 @@ const ArtistRanking: React.FC<ArtistRankingProps> = ({ navigate }) => {
         <section className="space-y-4">
           <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 ml-2">Available Applicants</h3>
           <div className="space-y-3">
-            {APPLICANTS.filter(a => !rankings.includes(a.id)).map((artist) => (
+            {applicants.filter(a => !rankings.includes(a.id)).map((artist) => (
               <div 
                 key={artist.id} 
                 className={`bg-surface-dark/50 border border-white/5 rounded-3xl p-4 flex items-center gap-4 active:bg-surface-dark transition-colors cursor-pointer ${rankings.length >= 5 ? 'opacity-50 grayscale' : ''}`}

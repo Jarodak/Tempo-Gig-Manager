@@ -1,6 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, Artist } from '../types';
+import { artistsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface BandMember extends Artist {
   joinedAt: string;
@@ -15,33 +17,48 @@ interface BandInvite {
   image: string;
 }
 
-const SEARCHABLE_ARTISTS: Artist[] = [
-  { id: 't2', name: 'Luna Soul', genre: 'R&B', rating: 4.7, type: 'Soloist', avgDraw: '180', image: 'https://picsum.photos/seed/luna/200/200' },
-  { id: 't3', name: 'Neon Pulse', genre: 'Electronic', rating: 4.2, type: 'Duo', avgDraw: '150', image: 'https://picsum.photos/seed/neon/200/200' },
-  { id: 't4', name: 'The Backbeats', genre: 'Classic Rock', rating: 4.4, type: '5 Piece', avgDraw: '300', image: 'https://picsum.photos/seed/back/200/200' },
-  { id: 't5', name: 'Velvet Undergrounds', genre: 'Alternative', rating: 4.5, type: 'Band', avgDraw: '200', image: 'https://picsum.photos/seed/velvet/200/200' },
-];
-
-const INITIAL_INVITES: BandInvite[] = [
-  { id: 'inv1', fromBand: 'The Midnight Echoes', fromArtist: 'Alex Thompson', role: 'Drums', image: 'https://picsum.photos/seed/echoes/200/200' }
-];
 
 const ArtistRoster: React.FC<{ navigate: (v: AppView) => void }> = ({ navigate }) => {
   const [isBandMember, setIsBandMember] = useState(false);
   const [bandName, setBandName] = useState('');
   const [members, setMembers] = useState<BandMember[]>([]);
-  const [invites, setInvites] = useState<BandInvite[]>(INITIAL_INVITES);
+  const [invites, setInvites] = useState<BandInvite[]>([]);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showStartBand, setShowStartBand] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchableArtists, setSearchableArtists] = useState<Artist[]>([]);
 
-  const filteredArtists = useMemo(() => {
-    return SEARCHABLE_ARTISTS.filter(a => 
-      a.name.toLowerCase().includes(search.toLowerCase()) || 
-      a.genre.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search]);
+  useEffect(() => {
+    const loadArtists = async () => {
+      try {
+        const res = await artistsApi.list();
+        const currentUser = getCurrentUser();
+        if (res.data?.artists) {
+          // Filter out current user from searchable artists
+          setSearchableArtists(res.data.artists
+            .filter((a: any) => a.user_id !== currentUser?.id)
+            .map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              genre: Array.isArray(a.genre) ? a.genre.join(', ') : a.genre || 'Various',
+              rating: 4.5,
+              type: 'Artist',
+              avgDraw: '—',
+              image: a.profile_picture || '',
+            })));
+        }
+      } catch (err) {
+        console.error('Failed to load artists:', err);
+      }
+    };
+    loadArtists();
+  }, []);
+
+  const filteredArtists = searchableArtists.filter(a => 
+    a.name.toLowerCase().includes(search.toLowerCase()) || 
+    a.genre.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleStartBand = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +77,7 @@ const ArtistRoster: React.FC<{ navigate: (v: AppView) => void }> = ({ navigate }
         rating: 5.0,
         type: 'Artist',
         avgDraw: '0',
-        image: 'https://picsum.photos/seed/artist_profile/200/200',
+        image: '',
         joinedAt: 'Today',
         isLeader: true
       }]);
@@ -92,7 +109,7 @@ const ArtistRoster: React.FC<{ navigate: (v: AppView) => void }> = ({ navigate }
           rating: 5.0,
           type: 'Artist',
           avgDraw: '0',
-          image: 'https://picsum.photos/seed/artist_profile/200/200',
+          image: '',
           joinedAt: 'Just Now'
         }
       ]);

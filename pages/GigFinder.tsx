@@ -305,7 +305,7 @@ const GigFinder: React.FC<GigFinderProps> = ({ navigate, logout }) => {
           ) : (
             filteredGigs.map((gig) => (
               <div key={gig.id} className="rounded-[2.5rem] overflow-hidden bg-surface-dark border border-white/5 active:scale-[0.98] transition-all">
-                <div className="relative aspect-[4/3] bg-center bg-cover" style={{ backgroundImage: `url(${gig.image || 'https://picsum.photos/seed/gig_fallback/800/600'})` }}>
+                <div className="relative aspect-[4/3] bg-center bg-cover" style={{ backgroundImage: gig.image ? `url(${gig.image})` : 'none', backgroundColor: gig.image ? undefined : '#1a1a2e' }}>
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-dark via-transparent opacity-80"></div>
                   <div className="absolute top-4 left-4 flex gap-2">
                     <span className="px-3 py-1 bg-black/50 backdrop-blur-sm rounded-full text-xs font-bold text-white">{gig.genre}</span>

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { AppView, CalendarDay } from '../types';
+import React, { useState, useMemo } from 'react';
+import { AppView } from '../types';
 
 interface VenueDashboardProps {
   navigate: (view: AppView) => void;
@@ -8,18 +8,34 @@ interface VenueDashboardProps {
   onSelectDay: (day: number) => void;
 }
 
-const DAYS: CalendarDay[] = [
-  { dayName: 'Mon', dayNumber: 12 },
-  { dayName: 'Tue', dayNumber: 13, isToday: true },
-  { dayName: 'Wed', dayNumber: 14, hasEvent: true },
-  { dayName: 'Thu', dayNumber: 15 },
-  { dayName: 'Fri', dayNumber: 16, hasEvent: true },
-  { dayName: 'Sat', dayNumber: 17 },
-];
+interface DashboardDay {
+  dayName: string;
+  dayNumber: number;
+  isToday?: boolean;
+  hasEvent?: boolean;
+}
+
+const getDynamicDays = (): DashboardDay[] => {
+  const today = new Date();
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const days: DashboardDay[] = [];
+  
+  for (let i = -1; i < 5; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    days.push({
+      dayName: dayNames[date.getDay()],
+      dayNumber: date.getDate(),
+      isToday: i === 0,
+    });
+  }
+  return days;
+};
 
 const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSelectDay }) => {
   const [isSynced, setIsSynced] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+  const days = useMemo(() => getDynamicDays(), []);
 
   const toggleSync = () => {
     if (!isSynced) {
@@ -123,7 +139,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSel
           <h3 className="text-white text-xs font-black uppercase tracking-[0.2em] opacity-50">Timeline</h3>
         </div>
         <div className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory px-1">
-          {DAYS.map((day) => (
+          {days.map((day) => (
             <button
               key={day.dayNumber}
               onClick={() => onSelectDay(day.dayNumber)}
@@ -155,11 +171,13 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSel
         >
           <div className="flex items-center gap-4 relative z-10">
             <div 
-              className="bg-center bg-cover rounded-2xl size-16 shrink-0 border-2 border-primary/20" 
-              style={{ backgroundImage: 'url("https://picsum.photos/seed/band1/400/400")' }}
-            ></div>
+              className="bg-surface-dark rounded-2xl size-16 shrink-0 border-2 border-primary/20 flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-slate-600 text-2xl">person</span>
+            </div>
             <div className="flex flex-col flex-1">
-              <h2 className="text-white text-lg font-black leading-tight">The Midnight Echoes</h2>
+              <h2 className="text-white text-lg font-black leading-tight">View Applicants</h2>
+              <p className="text-slate-500 text-xs">Manage gig applications</p>
             </div>
           </div>
           <button className="w-full rounded-2xl h-14 bg-primary text-white text-sm font-black shadow-xl shadow-primary/30 active:scale-95 transition-all">Rank for Gig</button>

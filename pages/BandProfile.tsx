@@ -123,7 +123,7 @@ const BandProfile: React.FC<BandProfileProps> = ({ navigate }) => {
         genre: genres[0] || 'Rock',
         phone: '555-0000',
         email: user.email || 'band@tempo.app',
-        profile_picture: bandPhoto || 'https://picsum.photos/seed/band/400/400',
+        profile_picture: bandPhoto || '',
         user_id: user.id,
       };
       

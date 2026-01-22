@@ -1,30 +1,48 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, Artist } from '../types';
+import { artistsApi } from '../utils/api';
 
 interface VenueDiscoverProps {
   navigate: (view: AppView) => void;
 }
 
-const TALENT_POOL: Artist[] = [
-  { id: 't1', name: 'The Midnight Echoes', genre: 'Indie Rock', rating: 4.9, type: 'Band', avgDraw: '250', image: 'https://picsum.photos/seed/echoes/200/200' },
-  { id: 't2', name: 'Luna Soul', genre: 'R&B', rating: 4.7, type: 'Soloist', avgDraw: '180', image: 'https://picsum.photos/seed/luna/200/200' },
-  { id: 't3', name: 'Neon Pulse', genre: 'Electronic', rating: 4.2, type: 'Duo', avgDraw: '150', image: 'https://picsum.photos/seed/neon/200/200' },
-  { id: 't4', name: 'The Backbeats', genre: 'Classic Rock', rating: 4.4, type: '5 Piece', avgDraw: '300', image: 'https://picsum.photos/seed/back/200/200' },
-  { id: 't5', name: 'Velvet Undergrounds', genre: 'Alternative', rating: 4.5, type: 'Band', avgDraw: '200', image: 'https://picsum.photos/seed/velvet/200/200' },
-];
 
 const VenueDiscover: React.FC<VenueDiscoverProps> = ({ navigate }) => {
   const [search, setSearch] = useState('');
   const [addedIds, setAddedIds] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTalent = useMemo(() => {
-    return TALENT_POOL.filter(artist => 
-      artist.name.toLowerCase().includes(search.toLowerCase()) || 
-      artist.genre.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search]);
+  useEffect(() => {
+    const loadArtists = async () => {
+      setLoading(true);
+      try {
+        const res = await artistsApi.list();
+        if (res.data?.artists) {
+          setArtists(res.data.artists.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            genre: Array.isArray(a.genre) ? a.genre.join(', ') : a.genre || 'Various',
+            rating: 4.5,
+            type: 'Artist',
+            avgDraw: '—',
+            image: a.profile_picture || '',
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load artists:', err);
+      }
+      setLoading(false);
+    };
+    loadArtists();
+  }, []);
+
+  const filteredTalent = artists.filter(artist => 
+    artist.name.toLowerCase().includes(search.toLowerCase()) || 
+    artist.genre.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleAddToRoster = (artist: Artist) => {
     if (addedIds.includes(artist.id)) return;

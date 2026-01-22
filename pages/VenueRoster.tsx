@@ -1,24 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, Artist, Gig } from '../types';
+import { artistsApi, gigsApi } from '../utils/api';
+import { getCurrentUser } from '../services/auth';
 
 interface VenueRosterProps {
   navigate: (view: AppView) => void;
 }
 
-const ROSTER_ARTISTS: Artist[] = [
-  { id: 'r1', name: 'The Midnight Echoes', genre: 'Indie Rock', rating: 4.9, type: 'Band', avgDraw: '250', image: 'https://picsum.photos/seed/echoes/200/200' },
-  { id: 'r2', name: 'Jazz Quartet NYC', genre: 'Jazz', rating: 4.8, type: 'Quartet', avgDraw: '100', image: 'https://picsum.photos/seed/jazz/200/200' },
-  { id: 'r3', name: 'Synth Wave Duo', genre: 'Electronic', rating: 4.5, type: 'Duo', avgDraw: '150', image: 'https://picsum.photos/seed/synth/200/200' },
-  { id: 'r4', name: 'Luna Soul', genre: 'Soul', rating: 4.7, type: 'Soloist', avgDraw: '180', image: 'https://picsum.photos/seed/luna/200/200' },
-  { id: 'r5', name: 'Neon Pulse', genre: 'Electronic', rating: 4.2, type: 'Duo', avgDraw: '150', image: 'https://picsum.photos/seed/neon/200/200' },
-];
-
-const UPCOMING_GIGS: Gig[] = [
-  { id: 'g1', title: 'Neon Nights', venue: 'Main Stage', location: 'NYC', date: 'Oct 24', time: '9PM', price: '$800', genre: 'Electronic', isVerified: true, image: '', status: 'pending' },
-  { id: 'g2', title: 'Blue Note Jazz Jam', venue: 'Lounge', location: 'NYC', date: 'Oct 21', time: '7PM', price: '$200', genre: 'Jazz', isVerified: true, image: '', status: 'confirmed' },
-  { id: 'g3', title: 'Basement Sessions', venue: 'Bar', location: 'NYC', date: 'Oct 31', time: '10PM', price: '$400', genre: 'Alternative', isVerified: true, image: '', status: 'draft' },
-];
 
 const VenueRoster: React.FC<VenueRosterProps> = ({ navigate }) => {
   const [search, setSearch] = useState('');
@@ -26,8 +15,41 @@ const VenueRoster: React.FC<VenueRosterProps> = ({ navigate }) => {
   const [selectedGigId, setSelectedGigId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [gigs, setGigs] = useState<Gig[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = ROSTER_ARTISTS.filter(a => 
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Load all artists
+        const artistsRes = await artistsApi.list();
+        if (artistsRes.data?.artists) {
+          setArtists(artistsRes.data.artists.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            genre: Array.isArray(a.genre) ? a.genre.join(', ') : a.genre || 'Various',
+            rating: 4.5,
+            type: 'Artist',
+            avgDraw: '—',
+            image: a.profile_picture || '',
+          })));
+        }
+        // Load all gigs (will filter by venue later when we have venue_id on gigs)
+        const gigsRes = await gigsApi.list();
+        if (gigsRes.data?.gigs) {
+          setGigs(gigsRes.data.gigs);
+        }
+      } catch (err) {
+        console.error('Failed to load roster data:', err);
+      }
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
+  const filtered = artists.filter(a => 
     a.name.toLowerCase().includes(search.toLowerCase()) || 
     a.genre.toLowerCase().includes(search.toLowerCase())
   );
@@ -183,7 +205,7 @@ const VenueRoster: React.FC<VenueRosterProps> = ({ navigate }) => {
               </div>
 
               <div className="space-y-3 max-h-[40vh] overflow-y-auto hide-scrollbar">
-                 {UPCOMING_GIGS.map(gig => (
+                 {gigs.length > 0 ? gigs.map(gig => (
                     <button 
                        key={gig.id}
                        onClick={() => setSelectedGigId(gig.id)}
@@ -206,7 +228,9 @@ const VenueRoster: React.FC<VenueRosterProps> = ({ navigate }) => {
                           <span className="material-symbols-outlined text-primary text-2xl fill-1">check_circle</span>
                        )}
                     </button>
-                 ))}
+                 )) : (
+                    <p className="text-slate-500 text-center py-4">No gigs created yet. Create a gig first to invite artists.</p>
+                 )}
               </div>
 
               <div className="pt-4">
