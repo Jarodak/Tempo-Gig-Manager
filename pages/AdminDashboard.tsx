@@ -229,135 +229,189 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
     });
   };
 
-  // Login screen
+  // Login screen - terminal style
   if (!isAuthenticated) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background-dark text-white p-6">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-2">
-            <div className="size-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-3xl text-primary">admin_panel_settings</span>
+      <div className="min-h-screen bg-[#0a0a0a] text-green-400 font-mono flex items-center justify-center p-6">
+        <div className="w-full max-w-lg">
+          <div className="bg-[#111] border border-green-900/50 rounded-lg overflow-hidden shadow-2xl">
+            {/* Terminal header */}
+            <div className="bg-[#1a1a1a] px-4 py-2 flex items-center gap-2 border-b border-green-900/30">
+              <div className="flex gap-1.5">
+                <div className="size-3 rounded-full bg-red-500/80"></div>
+                <div className="size-3 rounded-full bg-yellow-500/80"></div>
+                <div className="size-3 rounded-full bg-green-500/80"></div>
+              </div>
+              <span className="text-xs text-green-600 ml-2">admin@tempo-gig-manager ~ auth</span>
             </div>
-            <h1 className="text-3xl font-black">Admin Dashboard</h1>
-            <p className="text-slate-500">Sign in to continue</p>
+            
+            <div className="p-6 space-y-4">
+              <div className="text-green-500 text-sm">
+                <p>$ tempo-admin --login</p>
+                <p className="text-green-600 mt-2">Tempo Gig Manager Admin Console v1.0.0</p>
+                <p className="text-green-600">Authentication required.</p>
+              </div>
+              
+              <div className="space-y-3 mt-6">
+                <div>
+                  <label className="text-xs text-green-600 block mb-1">username:</label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full h-10 bg-[#0a0a0a] border border-green-900/50 rounded px-3 font-mono text-green-400 outline-none focus:border-green-500 text-sm"
+                    placeholder="_"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-green-600 block mb-1">password:</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                    className="w-full h-10 bg-[#0a0a0a] border border-green-900/50 rounded px-3 font-mono text-green-400 outline-none focus:border-green-500 text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              
+              {error && <p className="text-red-400 text-xs mt-2">ERROR: {error}</p>}
+              
+              <button
+                onClick={handleLogin}
+                disabled={loading}
+                className="w-full h-10 bg-green-900/30 border border-green-700/50 text-green-400 font-mono text-sm rounded hover:bg-green-900/50 transition-colors mt-4"
+              >
+                {loading ? '> authenticating...' : '> authenticate'}
+              </button>
+              
+              <button
+                onClick={() => navigate(AppView.LANDING)}
+                className="w-full text-green-700 text-xs hover:text-green-500 transition-colors mt-2"
+              >
+                $ exit
+              </button>
+            </div>
           </div>
-          
-          <div className="space-y-4">
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full h-14 bg-surface-dark border-2 border-white/10 rounded-2xl px-4 font-medium outline-none focus:border-primary"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="Password"
-              className="w-full h-14 bg-surface-dark border-2 border-white/10 rounded-2xl px-4 font-medium outline-none focus:border-primary"
-            />
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full h-14 bg-primary text-white font-bold rounded-2xl active:scale-95 transition-all"
-            >
-              {loading ? 'Authenticating...' : 'Access Dashboard'}
-            </button>
-          </div>
-          
-          <button
-            onClick={() => navigate(AppView.LANDING)}
-            className="w-full text-slate-500 text-sm hover:text-white transition-colors"
-          >
-            ← Back to App
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background-dark text-white min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background-dark/90 backdrop-blur-xl border-b border-white/5 px-6 py-4">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-mono flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#111] border-r border-gray-800 flex flex-col">
+        <div className="p-4 border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
+            <div className="size-8 rounded bg-green-900/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-green-500 text-lg">terminal</span>
             </div>
             <div>
-              <h1 className="text-xl font-black">Admin Dashboard</h1>
-              <p className="text-xs text-slate-500">Tempo Gig Manager</p>
+              <h1 className="text-sm font-bold text-white">Tempo Admin</h1>
+              <p className="text-[10px] text-gray-600">v1.0.0</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLogout}
-              className="h-10 px-4 rounded-xl bg-surface-dark flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
-            >
-              <span className="material-symbols-outlined text-lg">logout</span>
-              Logout
-            </button>
-            <button
-              onClick={() => navigate(AppView.LANDING)}
-              className="size-10 rounded-xl bg-surface-dark flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
         </div>
-      </header>
-
-      {/* Tabs */}
-      <div className="border-b border-white/5 px-6">
-        <div className="flex gap-1 overflow-x-auto hide-scrollbar">
-          {(['overview', 'users', 'venues', 'artists', 'gigs'] as TabType[]).map((tab) => (
+        
+        <nav className="flex-1 p-2">
+          {([
+            { id: 'overview', icon: 'dashboard', label: 'Overview' },
+            { id: 'users', icon: 'person', label: 'Users' },
+            { id: 'venues', icon: 'location_on', label: 'Venues' },
+            { id: 'artists', icon: 'music_note', label: 'Artists' },
+            { id: 'gigs', icon: 'event', label: 'Gigs' },
+          ] as { id: TabType; icon: string; label: string }[]).map((item) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-bold capitalize whitespace-nowrap transition-all border-b-2 ${
-                activeTab === tab
-                  ? 'text-primary border-primary'
-                  : 'text-slate-500 border-transparent hover:text-white'
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
+                activeTab === item.id
+                  ? 'bg-green-900/20 text-green-400 border-l-2 border-green-500'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
               }`}
             >
-              {tab}
+              <span className="material-symbols-outlined text-lg">{item.icon}</span>
+              {item.label}
             </button>
           ))}
+        </nav>
+        
+        <div className="p-4 border-t border-gray-800 space-y-2">
+          <button
+            onClick={() => navigate(AppView.LANDING)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Back to App
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:text-red-400 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">logout</span>
+            Logout
+          </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto p-6">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="h-12 bg-[#111] border-b border-gray-800 flex items-center justify-between px-6">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <span>admin@tempo</span>
+            <span className="text-gray-700">:</span>
+            <span className="text-green-600">~/{activeTab}</span>
+            <span className="text-gray-500">$</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <span className="text-gray-600">{new Date().toLocaleString()}</span>
+            <span className={`flex items-center gap-1 ${loading ? 'text-yellow-500' : 'text-green-500'}`}>
+              <span className="size-1.5 rounded-full bg-current animate-pulse"></span>
+              {loading ? 'loading' : 'connected'}
+            </span>
+          </div>
+        </header>
+
+        {/* Content area */}
+        <div className="flex-1 overflow-y-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-green-500 text-sm">
+              <span className="animate-pulse">Loading data...</span>
+            </div>
           </div>
         ) : (
           <>
             {/* Overview Tab */}
             {activeTab === 'overview' && stats && (
               <div className="space-y-6">
-                <h2 className="text-lg font-bold">Platform Statistics</h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-xs text-gray-600 mb-4">$ tempo-admin --stats</div>
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                   {[
-                    { label: 'Users', value: stats.users, icon: 'person', color: 'bg-blue-500' },
-                    { label: 'Venues', value: stats.venues, icon: 'location_on', color: 'bg-purple-500' },
-                    { label: 'Artists', value: stats.artists, icon: 'music_note', color: 'bg-cyan-500' },
-                    { label: 'Bands', value: stats.bands, icon: 'groups', color: 'bg-orange-500' },
-                    { label: 'Gigs', value: stats.gigs, icon: 'event', color: 'bg-green-500' },
+                    { label: 'users', value: stats.users, color: 'text-blue-400' },
+                    { label: 'venues', value: stats.venues, color: 'text-purple-400' },
+                    { label: 'artists', value: stats.artists, color: 'text-cyan-400' },
+                    { label: 'bands', value: stats.bands, color: 'text-orange-400' },
+                    { label: 'gigs', value: stats.gigs, color: 'text-green-400' },
                   ].map((stat) => (
-                    <div key={stat.label} className="bg-surface-dark rounded-2xl p-4 border border-white/5">
-                      <div className={`size-10 rounded-xl ${stat.color}/20 flex items-center justify-center mb-3`}>
-                        <span className={`material-symbols-outlined ${stat.color.replace('bg-', 'text-')}`}>{stat.icon}</span>
-                      </div>
-                      <p className="text-3xl font-black">{stat.value}</p>
-                      <p className="text-sm text-slate-500">{stat.label}</p>
+                    <div key={stat.label} className="bg-[#111] rounded-lg p-4 border border-gray-800">
+                      <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className="text-xs text-gray-600 mt-1">{stat.label}</p>
                     </div>
                   ))}
+                </div>
+                
+                <div className="bg-[#111] rounded-lg border border-gray-800 p-4 mt-6">
+                  <div className="text-xs text-gray-600 mb-3">$ system-info</div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div><span className="text-gray-600">status:</span> <span className="text-green-400">operational</span></div>
+                    <div><span className="text-gray-600">uptime:</span> <span className="text-gray-400">99.9%</span></div>
+                    <div><span className="text-gray-600">api:</span> <span className="text-green-400">healthy</span></div>
+                    <div><span className="text-gray-600">db:</span> <span className="text-green-400">connected</span></div>
+                  </div>
                 </div>
               </div>
             )}
@@ -366,44 +420,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
             {activeTab === 'users' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Users ({users.length})</h2>
-                  <button onClick={loadUsers} className="text-sm text-primary font-bold">Refresh</button>
+                  <div className="text-xs text-gray-600">$ tempo-admin --list users <span className="text-gray-500">({users.length} records)</span></div>
+                  <button onClick={loadUsers} className="text-xs text-green-600 hover:text-green-400">refresh</button>
                 </div>
-                <div className="bg-surface-dark rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-[#111] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white/5">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-900/50 border-b border-gray-800">
                         <tr>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Email</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Role</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">2FA</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Verified</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Created</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Actions</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">email</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">role</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">2fa</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">verified</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">created</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-gray-800/50">
                         {users.map((user) => (
-                          <tr key={user.id} className="hover:bg-white/5">
-                            <td className="px-4 py-3 font-medium">{user.email || user.phone || '—'}</td>
+                          <tr key={user.id} className="hover:bg-gray-800/30">
+                            <td className="px-4 py-3 text-gray-300">{user.email || user.phone || '—'}</td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                user.role === 'venue' ? 'bg-purple-500/20 text-purple-400' :
-                                user.role === 'artist' ? 'bg-cyan-500/20 text-cyan-400' :
-                                'bg-orange-500/20 text-orange-400'
+                              <span className={`${
+                                user.role === 'venue' ? 'text-purple-400' :
+                                user.role === 'artist' ? 'text-cyan-400' :
+                                'text-orange-400'
                               }`}>
                                 {user.role}
                               </span>
                             </td>
-                            <td className="px-4 py-3">{user.two_factor_enabled ? '✓' : '—'}</td>
-                            <td className="px-4 py-3">{user.face_verified ? '✓' : '—'}</td>
-                            <td className="px-4 py-3 text-slate-400">{formatDate(user.created_at)}</td>
+                            <td className="px-4 py-3">{user.two_factor_enabled ? <span className="text-green-400">✓</span> : <span className="text-gray-600">—</span>}</td>
+                            <td className="px-4 py-3">{user.face_verified ? <span className="text-green-400">✓</span> : <span className="text-gray-600">—</span>}</td>
+                            <td className="px-4 py-3 text-gray-500">{formatDate(user.created_at)}</td>
                             <td className="px-4 py-3">
                               <button
                                 onClick={() => handleDelete('users', user.id)}
-                                className="text-red-500 hover:text-red-400 font-bold text-xs"
+                                className="text-red-600 hover:text-red-400"
                               >
-                                Delete
+                                delete
                               </button>
                             </td>
                           </tr>
@@ -419,37 +473,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
             {activeTab === 'venues' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Venues ({venues.length})</h2>
-                  <button onClick={loadVenues} className="text-sm text-primary font-bold">Refresh</button>
+                  <div className="text-xs text-gray-600">$ tempo-admin --list venues <span className="text-gray-500">({venues.length} records)</span></div>
+                  <button onClick={loadVenues} className="text-xs text-green-600 hover:text-green-400">refresh</button>
                 </div>
-                <div className="bg-surface-dark rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-[#111] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white/5">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-900/50 border-b border-gray-800">
                         <tr>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Name</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Type</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Email</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Owner</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Created</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Actions</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">name</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">type</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">email</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">owner</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">created</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-gray-800/50">
                         {venues.map((venue) => (
-                          <tr key={venue.id} className="hover:bg-white/5">
-                            <td className="px-4 py-3 font-medium">{venue.name}</td>
-                            <td className="px-4 py-3 capitalize">{venue.type}</td>
-                            <td className="px-4 py-3">{venue.email}</td>
-                            <td className="px-4 py-3 text-slate-400">{venue.owner_email}</td>
-                            <td className="px-4 py-3 text-slate-400">{formatDate(venue.created_at)}</td>
+                          <tr key={venue.id} className="hover:bg-gray-800/30">
+                            <td className="px-4 py-3 text-purple-400">{venue.name}</td>
+                            <td className="px-4 py-3 text-gray-400">{venue.type}</td>
+                            <td className="px-4 py-3 text-gray-300">{venue.email}</td>
+                            <td className="px-4 py-3 text-gray-500">{venue.owner_email}</td>
+                            <td className="px-4 py-3 text-gray-500">{formatDate(venue.created_at)}</td>
                             <td className="px-4 py-3">
-                              <button
-                                onClick={() => handleDelete('venues', venue.id)}
-                                className="text-red-500 hover:text-red-400 font-bold text-xs"
-                              >
-                                Delete
-                              </button>
+                              <button onClick={() => handleDelete('venues', venue.id)} className="text-red-600 hover:text-red-400">delete</button>
                             </td>
                           </tr>
                         ))}
@@ -464,43 +513,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
             {activeTab === 'artists' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Artists ({artists.length})</h2>
-                  <button onClick={loadArtists} className="text-sm text-primary font-bold">Refresh</button>
+                  <div className="text-xs text-gray-600">$ tempo-admin --list artists <span className="text-gray-500">({artists.length} records)</span></div>
+                  <button onClick={loadArtists} className="text-xs text-green-600 hover:text-green-400">refresh</button>
                 </div>
-                <div className="bg-surface-dark rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-[#111] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white/5">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-900/50 border-b border-gray-800">
                         <tr>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Name</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Genre</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Location</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Open to Work</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Owner</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Actions</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">name</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">genre</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">location</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">open_to_work</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">owner</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-gray-800/50">
                         {artists.map((artist) => (
-                          <tr key={artist.id} className="hover:bg-white/5">
-                            <td className="px-4 py-3 font-medium">{artist.name}</td>
-                            <td className="px-4 py-3">{artist.genre?.join(', ') || '—'}</td>
-                            <td className="px-4 py-3">{artist.city_of_origin || '—'}</td>
+                          <tr key={artist.id} className="hover:bg-gray-800/30">
+                            <td className="px-4 py-3 text-cyan-400">{artist.name}</td>
+                            <td className="px-4 py-3 text-gray-400">{artist.genre?.join(', ') || '—'}</td>
+                            <td className="px-4 py-3 text-gray-400">{artist.city_of_origin || '—'}</td>
+                            <td className="px-4 py-3">{artist.open_to_work ? <span className="text-green-400">true</span> : <span className="text-gray-600">false</span>}</td>
+                            <td className="px-4 py-3 text-gray-500">{artist.owner_email}</td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                artist.open_to_work ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                              }`}>
-                                {artist.open_to_work ? 'Yes' : 'No'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-slate-400">{artist.owner_email}</td>
-                            <td className="px-4 py-3">
-                              <button
-                                onClick={() => handleDelete('artists', artist.id)}
-                                className="text-red-500 hover:text-red-400 font-bold text-xs"
-                              >
-                                Delete
-                              </button>
+                              <button onClick={() => handleDelete('artists', artist.id)} className="text-red-600 hover:text-red-400">delete</button>
                             </td>
                           </tr>
                         ))}
@@ -515,46 +553,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
             {activeTab === 'gigs' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Gigs ({gigs.length})</h2>
-                  <button onClick={loadGigs} className="text-sm text-primary font-bold">Refresh</button>
+                  <div className="text-xs text-gray-600">$ tempo-admin --list gigs <span className="text-gray-500">({gigs.length} records)</span></div>
+                  <button onClick={loadGigs} className="text-xs text-green-600 hover:text-green-400">refresh</button>
                 </div>
-                <div className="bg-surface-dark rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-[#111] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white/5">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-900/50 border-b border-gray-800">
                         <tr>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Title</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Venue</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Location</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Date</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Status</th>
-                          <th className="text-left px-4 py-3 font-bold text-slate-400">Actions</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">title</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">venue</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">location</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">date</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">status</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-500">actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-gray-800/50">
                         {gigs.map((gig) => (
-                          <tr key={gig.id} className="hover:bg-white/5">
-                            <td className="px-4 py-3 font-medium">{gig.title}</td>
-                            <td className="px-4 py-3">{gig.venue}</td>
-                            <td className="px-4 py-3">{gig.location}</td>
-                            <td className="px-4 py-3">{gig.date}</td>
+                          <tr key={gig.id} className="hover:bg-gray-800/30">
+                            <td className="px-4 py-3 text-green-400">{gig.title}</td>
+                            <td className="px-4 py-3 text-gray-400">{gig.venue}</td>
+                            <td className="px-4 py-3 text-gray-400">{gig.location}</td>
+                            <td className="px-4 py-3 text-gray-300">{gig.date}</td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                gig.status === 'published' ? 'bg-green-500/20 text-green-400' :
-                                gig.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
-                                gig.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                                'bg-slate-500/20 text-slate-400'
+                              <span className={`${
+                                gig.status === 'published' ? 'text-green-400' :
+                                gig.status === 'draft' ? 'text-yellow-400' :
+                                gig.status === 'confirmed' ? 'text-blue-400' :
+                                'text-gray-500'
                               }`}>
                                 {gig.status}
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <button
-                                onClick={() => handleDelete('gigs', gig.id)}
-                                className="text-red-500 hover:text-red-400 font-bold text-xs"
-                              >
-                                Delete
-                              </button>
+                              <button onClick={() => handleDelete('gigs', gig.id)} className="text-red-600 hover:text-red-400">delete</button>
                             </td>
                           </tr>
                         ))}
@@ -566,6 +599,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
             )}
           </>
         )}
+        </div>
       </main>
     </div>
   );
