@@ -491,7 +491,7 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Est. Hours</label>
                     <div className="flex items-center bg-background-dark border border-white/5 rounded-2xl px-5 h-16">
                       <input 
-                        value={estimatedHours || suggestedHours.toString()}
+                        value={estimatedHours}
                         onChange={(e) => setEstimatedHours(e.target.value)}
                         className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white" 
                         placeholder={suggestedHours.toString()} 

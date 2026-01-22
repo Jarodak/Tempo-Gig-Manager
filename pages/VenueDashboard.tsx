@@ -162,7 +162,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSel
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-xs font-black uppercase tracking-[0.2em] opacity-50">Timeline</h3>
         </div>
-        <div className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory px-1">
+        <div className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory px-1 py-2">
           {days.map((day) => (
             <button
               key={day.dayNumber}
