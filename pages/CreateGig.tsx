@@ -66,6 +66,24 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
     return `${h12}:${minutes} ${ampm}`;
   };
 
+  // Calculate hours between load-in and curfew
+  const calculateGigHours = (start: string, end: string): number => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    
+    let startMinutes = startH * 60 + startM;
+    let endMinutes = endH * 60 + endM;
+    
+    // Handle overnight gigs (e.g., 20:00 to 02:00)
+    if (endMinutes <= startMinutes) {
+      endMinutes += 24 * 60;
+    }
+    
+    return (endMinutes - startMinutes) / 60;
+  };
+
+  const suggestedHours = calculateGigHours(loadInTime, curfewTime);
+
   // Calendar helpers
   const getMonthDays = (date: Date) => {
     const year = date.getFullYear();
@@ -473,20 +491,21 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Est. Hours</label>
                     <div className="flex items-center bg-background-dark border border-white/5 rounded-2xl px-5 h-16">
                       <input 
-                        value={estimatedHours}
+                        value={estimatedHours || suggestedHours.toString()}
                         onChange={(e) => setEstimatedHours(e.target.value)}
                         className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white" 
-                        placeholder="4" 
+                        placeholder={suggestedHours.toString()} 
                         type="number" 
                       />
                       <span className="text-slate-500 text-sm font-bold">hrs</span>
                     </div>
+                    <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Based on {formatTime(loadInTime)} – {formatTime(curfewTime)}</p>
                   </div>
                 </div>
-                {hourlyRate && estimatedHours && (
+                {hourlyRate && (
                   <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
                     <span className="text-slate-400 text-sm">Estimated Total</span>
-                    <span className="text-primary font-black text-xl">${(parseFloat(hourlyRate) * parseFloat(estimatedHours)).toFixed(2)}</span>
+                    <span className="text-primary font-black text-xl">${(parseFloat(hourlyRate) * (parseFloat(estimatedHours) || suggestedHours)).toFixed(2)}</span>
                   </div>
                 )}
                 {errors.hourlyRate && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{errors.hourlyRate}</p>}
