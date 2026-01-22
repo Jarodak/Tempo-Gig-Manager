@@ -492,10 +492,16 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                     <div className="flex items-center bg-background-dark border border-white/5 rounded-2xl px-5 h-16">
                       <input 
                         value={estimatedHours}
-                        onChange={(e) => setEstimatedHours(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                            setEstimatedHours(val);
+                          }
+                        }}
                         className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white" 
                         placeholder={suggestedHours.toString()} 
-                        type="number" 
+                        type="text"
+                        inputMode="decimal"
                       />
                       <span className="text-slate-500 text-sm font-bold">hrs</span>
                     </div>
