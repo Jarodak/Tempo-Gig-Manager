@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { AppView } from '../types';
+import React, { useState, useEffect } from 'react';
+import { AppView, Gig } from '../types';
+import { gigsApi } from '../utils/api';
 
 interface InviteArtistProps {
   navigate: (view: AppView) => void;
@@ -14,6 +15,25 @@ const InviteArtist: React.FC<InviteArtistProps> = ({ navigate }) => {
   const [contactInfo, setContactInfo] = useState('');
   const [errors, setErrors] = useState<{ artistName?: string; contactInfo?: string }>({});
   const [isSending, setIsSending] = useState(false);
+  const [gigs, setGigs] = useState<Gig[]>([]);
+  const [selectedGigId, setSelectedGigId] = useState('');
+
+  useEffect(() => {
+    const loadGigs = async () => {
+      try {
+        const res = await gigsApi.list();
+        if (res.data?.gigs) {
+          setGigs(res.data.gigs);
+          if (res.data.gigs.length > 0) {
+            setSelectedGigId(res.data.gigs[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load gigs:', err);
+      }
+    };
+    loadGigs();
+  }, []);
 
   const validate = () => {
     const newErrors: { artistName?: string; contactInfo?: string } = {};
@@ -131,10 +151,18 @@ const InviteArtist: React.FC<InviteArtistProps> = ({ navigate }) => {
           <div className="space-y-3 text-left">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Select Gig</label>
             <div className="relative">
-              <select className="w-full h-18 bg-surface-dark border-2 border-white/5 rounded-[1.5rem] px-6 text-base font-black appearance-none focus:border-accent-cyan transition-all outline-none text-white">
-                <option>DJ Zephyr: Neon Nights (Oct 14)</option>
-                <option>Blue Note Jazz Jam (Oct 21)</option>
-                <option>Halloween Basement Bash (Oct 31)</option>
+              <select 
+                value={selectedGigId}
+                onChange={(e) => setSelectedGigId(e.target.value)}
+                className="w-full h-18 bg-surface-dark border-2 border-white/5 rounded-[1.5rem] px-6 text-base font-black appearance-none focus:border-accent-cyan transition-all outline-none text-white"
+              >
+                {gigs.length > 0 ? (
+                  gigs.map(gig => (
+                    <option key={gig.id} value={gig.id}>{gig.title} ({gig.date})</option>
+                  ))
+                ) : (
+                  <option value="">No gigs available</option>
+                )}
               </select>
               <span className="material-symbols-outlined absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
             </div>

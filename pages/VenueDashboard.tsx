@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
-import { AppView } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { AppView, Gig } from '../types';
+import { gigsApi } from '../utils/api';
 
 interface VenueDashboardProps {
   navigate: (view: AppView) => void;
@@ -35,7 +36,22 @@ const getDynamicDays = (): DashboardDay[] => {
 const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSelectDay }) => {
   const [isSynced, setIsSynced] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [gigs, setGigs] = useState<Gig[]>([]);
   const days = useMemo(() => getDynamicDays(), []);
+
+  useEffect(() => {
+    const loadGigs = async () => {
+      try {
+        const res = await gigsApi.list();
+        if (res.data?.gigs) {
+          setGigs(res.data.gigs);
+        }
+      } catch (err) {
+        console.error('Failed to load gigs:', err);
+      }
+    };
+    loadGigs();
+  }, []);
 
   const toggleSync = () => {
     if (!isSynced) {
@@ -105,32 +121,40 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({ navigate, logout, onSel
          <div className="flex items-center justify-between">
             <h3 className="text-white text-xs font-black uppercase tracking-[0.2em] opacity-50">Booking Pipelines</h3>
          </div>
-         <div 
-          onClick={() => navigate(AppView.RANKING)}
-          className="bg-surface-dark border border-primary/20 rounded-[2rem] p-5 space-y-4 shadow-xl active:scale-[0.98] transition-all cursor-pointer relative overflow-hidden"
-         >
-            <div className="flex items-center justify-between">
-               <div>
-                  <h4 className="text-white font-black text-base">Neon Nights</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Awaiting Artist #1 Response</p>
+         {gigs.length > 0 ? (
+           gigs.slice(0, 1).map(gig => (
+             <div 
+               key={gig.id}
+               onClick={() => navigate(AppView.RANKING)}
+               className="bg-surface-dark border border-primary/20 rounded-[2rem] p-5 space-y-4 shadow-xl active:scale-[0.98] transition-all cursor-pointer relative overflow-hidden"
+             >
+               <div className="flex items-center justify-between">
+                  <div>
+                     <h4 className="text-white font-black text-base">{gig.title}</h4>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Manage applicants</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                     <span className="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                     <span className="size-1.5 rounded-full bg-white/10"></span>
+                  </div>
                </div>
-               <div className="flex gap-1.5">
-                  <span className="size-1.5 rounded-full bg-primary animate-pulse"></span>
-                  <span className="size-1.5 rounded-full bg-white/10"></span>
+               <div className="flex items-center gap-3 bg-background-dark/50 p-3 rounded-2xl">
+                  <div className="size-10 rounded-xl bg-slate-800 flex items-center justify-center text-primary">
+                     <span className="material-symbols-outlined">event</span>
+                  </div>
+                  <div className="flex-1">
+                     <p className="text-xs font-black text-white">{gig.date} • {gig.time}</p>
+                  </div>
                </div>
-            </div>
-            <div className="flex items-center gap-3 bg-background-dark/50 p-3 rounded-2xl">
-               <div className="size-10 rounded-xl bg-slate-800 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined">person</span>
-               </div>
-               <div className="flex-1">
-                  <p className="text-xs font-black text-white">The Midnight Echo</p>
-               </div>
-               <div className="text-right">
-                  <p className="text-[10px] font-black text-primary">14h 22m</p>
-               </div>
-            </div>
-         </div>
+             </div>
+           ))
+         ) : (
+           <div className="bg-surface-dark/50 border border-dashed border-white/10 rounded-[2rem] p-6 text-center">
+             <span className="material-symbols-outlined text-slate-600 text-3xl mb-2">event_busy</span>
+             <p className="text-slate-500 text-sm font-bold">No active gigs</p>
+             <p className="text-slate-600 text-xs mt-1">Create a gig to start booking artists</p>
+           </div>
+         )}
       </div>
 
       {/* Calendar Timeline */}

@@ -88,7 +88,7 @@ const ArtistRanking: React.FC<ArtistRankingProps> = ({ navigate }) => {
         </button>
         <div className="flex-1 ml-2">
           <h2 className="text-lg font-black tracking-tight text-white">Manage Applications</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Neon Nights • Oct 24</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Rank applicants for your gig</p>
         </div>
       </header>
 

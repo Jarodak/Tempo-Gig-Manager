@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppView } from '../types';
+import { getCurrentUser } from '../services/auth';
 
 interface AgreementProps {
   navigate: (view: AppView) => void;
@@ -10,6 +11,7 @@ const Agreement: React.FC<AgreementProps> = ({ navigate }) => {
   const [isSigned, setIsSigned] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const user = getCurrentUser();
 
   const handleApply = () => {
     setIsSubmitting(true);
@@ -81,7 +83,7 @@ const Agreement: React.FC<AgreementProps> = ({ navigate }) => {
             >
               {isSigned ? (
                 <div className="text-primary text-center animate-in zoom-in duration-300">
-                   <p className="font-display text-4xl italic opacity-50 tracking-tighter">The Midnight Echo</p>
+                   <p className="font-display text-4xl italic opacity-50 tracking-tighter">{user?.email?.split('@')[0] || 'Your Signature'}</p>
                    <p className="text-[8px] font-black uppercase tracking-widest mt-2">Verified Digital ID: temp_88x2k1</p>
                 </div>
               ) : (
