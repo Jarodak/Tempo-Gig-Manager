@@ -324,8 +324,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
     );
   };
 
-  // Search Bar Component
-  const SearchBar = () => (
+  // Search bar JSX (inline to prevent focus loss)
+  const searchBarJSX = (
     <div className="relative">
       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">search</span>
       <input
@@ -517,7 +517,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h3 className="text-lg font-bold">Users ({filteredUsers.length})</h3>
                   <div className="flex items-center gap-3">
-                    <SearchBar />
+                    {searchBarJSX}
                     <button onClick={loadUsers} className="text-sm text-primary font-bold hover:text-primary/80 whitespace-nowrap">Refresh</button>
                   </div>
                 </div>
@@ -573,7 +573,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h3 className="text-lg font-bold">Venues ({filteredVenues.length})</h3>
                   <div className="flex items-center gap-3">
-                    <SearchBar />
+                    {searchBarJSX}
                     <button onClick={loadVenues} className="text-sm text-primary font-bold hover:text-primary/80 whitespace-nowrap">Refresh</button>
                   </div>
                 </div>
@@ -616,7 +616,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h3 className="text-lg font-bold">Artists ({filteredArtists.length})</h3>
                   <div className="flex items-center gap-3">
-                    <SearchBar />
+                    {searchBarJSX}
                     <button onClick={loadArtists} className="text-sm text-primary font-bold hover:text-primary/80 whitespace-nowrap">Refresh</button>
                   </div>
                 </div>
@@ -665,7 +665,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h3 className="text-lg font-bold">Gigs ({filteredGigs.length})</h3>
                   <div className="flex items-center gap-3">
-                    <SearchBar />
+                    {searchBarJSX}
                     <button onClick={loadGigs} className="text-sm text-primary font-bold hover:text-primary/80 whitespace-nowrap">Refresh</button>
                   </div>
                 </div>
