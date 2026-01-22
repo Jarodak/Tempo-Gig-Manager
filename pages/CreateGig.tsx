@@ -39,11 +39,83 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [postingSchedule, setPostingSchedule] = useState<'immediate' | 'scheduled'>('immediate');
   const [daysBeforePost, setDaysBeforePost] = useState(7);
   
+  // Calendar state
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autofillApplied, setAutofillApplied] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Time picker options
+  const timeOptions = [
+    '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+    '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00'
+  ];
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${minutes} ${ampm}`;
+  };
+
+  // Calendar helpers
+  const getMonthDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return { firstDay, daysInMonth };
+  };
+
+  const { firstDay, daysInMonth } = getMonthDays(calendarDate);
+
+  const handlePrevMonth = () => {
+    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+  };
+
+  const handleSelectDate = (day: number) => {
+    const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (newDate < today) return;
+    
+    setSelectedDate(newDate);
+    const dateStr = newDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    setDate(dateStr);
+    if (errors.date) setErrors({ ...errors, date: undefined });
+  };
+
+  const isDateSelected = (day: number) => {
+    if (!selectedDate) return false;
+    return selectedDate.getDate() === day && 
+           selectedDate.getMonth() === calendarDate.getMonth() && 
+           selectedDate.getFullYear() === calendarDate.getFullYear();
+  };
+
+  const isToday = (day: number) => {
+    const today = new Date();
+    return today.getDate() === day && 
+           today.getMonth() === calendarDate.getMonth() && 
+           today.getFullYear() === calendarDate.getFullYear();
+  };
+
+  const isPastDate = (day: number) => {
+    const checkDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return checkDate < today;
+  };
+
+  const monthYearStr = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Autofill from venue profile on mount
   useEffect(() => {
@@ -202,26 +274,48 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
 
         {/* Date Selector */}
         <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary ml-1">Select Start Date</label>
-          <div className="bg-surface-dark border border-border-dark rounded-[2rem] p-6 shadow-xl">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary ml-1">Select Start Date {date && <span className="text-white">— {date}</span>}</label>
+          <div className={`bg-surface-dark border rounded-[2rem] p-6 shadow-xl ${errors.date ? 'border-red-500/50' : 'border-border-dark'}`}>
             <div className="flex items-center justify-between mb-6">
-              <button className="size-10 rounded-full bg-background-dark/50 flex items-center justify-center text-slate-400 active:scale-90"><span className="material-symbols-outlined">chevron_left</span></button>
-              <p className="font-black text-base text-white">October 2023</p>
-              <button className="size-10 rounded-full bg-background-dark/50 flex items-center justify-center text-slate-400 active:scale-90"><span className="material-symbols-outlined">chevron_right</span></button>
+              <button onClick={handlePrevMonth} className="size-10 rounded-full bg-background-dark/50 flex items-center justify-center text-slate-400 active:scale-90 transition-transform"><span className="material-symbols-outlined">chevron_left</span></button>
+              <p className="font-black text-base text-white">{monthYearStr}</p>
+              <button onClick={handleNextMonth} className="size-10 rounded-full bg-background-dark/50 flex items-center justify-center text-slate-400 active:scale-90 transition-transform"><span className="material-symbols-outlined">chevron_right</span></button>
             </div>
             <div className="grid grid-cols-7 text-center text-[10px] font-black text-slate-600 mb-4 uppercase tracking-tighter">
-              {['S','M','T','W','T','F','S'].map(d => <span key={d}>{d}</span>)}
+              {['S','M','T','W','T','F','S'].map((d, i) => <span key={i}>{d}</span>)}
             </div>
             <div className="grid grid-cols-7 gap-y-2">
-              {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="h-10 flex items-center justify-center">
-                  <div className={`size-10 flex items-center justify-center rounded-[12px] text-sm font-black transition-all ${i === 11 ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-110' : 'text-slate-400 hover:bg-white/5 active:bg-white/10'}`}>
-                    {i + 1}
-                  </div>
-                </div>
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-10"></div>
               ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const selected = isDateSelected(day);
+                const today = isToday(day);
+                const past = isPastDate(day);
+                return (
+                  <div key={day} className="h-10 flex items-center justify-center">
+                    <button
+                      onClick={() => handleSelectDate(day)}
+                      disabled={past}
+                      className={`size-10 flex items-center justify-center rounded-[12px] text-sm font-black transition-all ${
+                        selected 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-110' 
+                          : today
+                            ? 'bg-primary/20 text-primary border-2 border-primary'
+                            : past
+                              ? 'text-slate-700 cursor-not-allowed'
+                              : 'text-slate-400 hover:bg-white/5 active:bg-white/10'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
+          {errors.date && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 animate-in fade-in slide-in-from-left-2">{errors.date}</p>}
         </div>
 
         {/* Time Slots */}
@@ -230,24 +324,34 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Load In</p>
-              <div className="flex items-center bg-surface-dark border border-border-dark rounded-2xl px-5 h-16 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
-                <span className="material-symbols-outlined text-slate-500 text-xl mr-3">schedule</span>
-                <input 
-                  type="time" 
-                  defaultValue="20:00" 
-                  className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-base text-white [color-scheme:dark]" 
-                />
+              <div className="relative">
+                <select
+                  value={loadInTime}
+                  onChange={(e) => setLoadInTime(e.target.value)}
+                  className="w-full bg-surface-dark border border-border-dark rounded-2xl pl-12 pr-10 h-16 text-white font-black text-base appearance-none focus:ring-2 focus:ring-primary/30 transition-all cursor-pointer"
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{formatTime(time)}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">schedule</span>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
               </div>
             </div>
             <div className="space-y-2">
               <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Curfew</p>
-              <div className="flex items-center bg-surface-dark border border-border-dark rounded-2xl px-5 h-16 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
-                <span className="material-symbols-outlined text-slate-500 text-xl mr-3">logout</span>
-                <input 
-                  type="time" 
-                  defaultValue="23:00" 
-                  className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-base text-white [color-scheme:dark]" 
-                />
+              <div className="relative">
+                <select
+                  value={curfewTime}
+                  onChange={(e) => setCurfewTime(e.target.value)}
+                  className="w-full bg-surface-dark border border-border-dark rounded-2xl pl-12 pr-10 h-16 text-white font-black text-base appearance-none focus:ring-2 focus:ring-primary/30 transition-all cursor-pointer"
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{formatTime(time)}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">logout</span>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
               </div>
             </div>
           </div>
