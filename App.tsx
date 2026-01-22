@@ -157,6 +157,15 @@ const App: React.FC = () => {
     }
   };
 
+  // Admin dashboard uses full width, other views use mobile max-width
+  if (currentView === AppView.ADMIN) {
+    return (
+      <div className="min-h-screen bg-background-dark">
+        {renderView()}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-background-dark">
       <div className="w-full max-w-md bg-background-dark min-h-screen relative shadow-2xl flex flex-col overflow-x-hidden">
