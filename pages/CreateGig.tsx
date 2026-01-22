@@ -21,7 +21,7 @@ const EQUIPMENT_OPTIONS = [
 const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState('weekly');
-  const [selectedDays, setSelectedDays] = useState<string[]>(['F']);
+  const [selectedDays, setSelectedDays] = useState<number[]>([5]); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   const [sameBandForAll, setSameBandForAll] = useState(true);
   
   // Form State
@@ -162,11 +162,11 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
     loadVenueProfile();
   }, []);
 
-  const toggleDay = (day: string) => {
-    if (selectedDays.includes(day)) {
-      setSelectedDays(selectedDays.filter(d => d !== day));
+  const toggleDay = (dayIndex: number) => {
+    if (selectedDays.includes(dayIndex)) {
+      setSelectedDays(selectedDays.filter(d => d !== dayIndex));
     } else {
-      setSelectedDays([...selectedDays, day]);
+      setSelectedDays([...selectedDays, dayIndex]);
     }
   };
 
@@ -598,8 +598,8 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
                     {['S','M','T','W','T','F','S'].map((day, i) => (
                       <button 
                         key={i}
-                        onClick={() => toggleDay(day)}
-                        className={`size-11 rounded-full flex items-center justify-center text-sm font-black border-2 transition-all ${selectedDays.includes(day) ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-110' : 'border-white/5 bg-background-dark text-slate-600 active:bg-white/10'}`}
+                        onClick={() => toggleDay(i)}
+                        className={`size-11 rounded-full flex items-center justify-center text-sm font-black border-2 transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-110' : 'border-white/5 bg-background-dark text-slate-600 active:bg-white/10'}`}
                       >
                         {day}
                       </button>
