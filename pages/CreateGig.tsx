@@ -653,23 +653,15 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
             {autofillApplied && <span className="text-accent-cyan ml-2">Autofilled</span>}
           </label>
           <div className="flex flex-wrap gap-2">
-            {genres.map(g => (
-              <span key={g} className="px-3 py-1.5 bg-primary text-white text-xs font-black rounded-full flex items-center gap-1">
-                {g}
-                <button onClick={() => toggleGenre(g)} className="ml-1 hover:text-red-300">×</button>
-              </span>
-            ))}
-          </div>
-          <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
             {GENRE_OPTIONS.map(genre => (
               <button
                 key={genre}
                 type="button"
                 onClick={() => toggleGenre(genre)}
-                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   genres.includes(genre)
                     ? 'bg-primary text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    : 'bg-surface-dark text-slate-400 border border-white/10'
                 }`}
               >
                 {genre}
@@ -686,23 +678,15 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
             {autofillApplied && <span className="text-accent-cyan ml-2">Autofilled</span>}
           </label>
           <div className="flex flex-wrap gap-2">
-            {equipmentProvided.map(e => (
-              <span key={e} className="px-3 py-1.5 bg-accent-cyan text-black text-xs font-black rounded-full flex items-center gap-1">
-                {e}
-                <button onClick={() => toggleEquipment(e)} className="ml-1 hover:text-red-600">×</button>
-              </span>
-            ))}
-          </div>
-          <div className="min-h-[100px] max-h-32 overflow-y-auto rounded-2xl border border-white/5 bg-surface-dark p-3 space-y-2">
             {EQUIPMENT_OPTIONS.map(equipment => (
               <button
                 key={equipment}
                 type="button"
                 onClick={() => toggleEquipment(equipment)}
-                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   equipmentProvided.includes(equipment)
                     ? 'bg-accent-cyan text-black'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    : 'bg-surface-dark text-slate-400 border border-white/10'
                 }`}
               >
                 {equipment}
