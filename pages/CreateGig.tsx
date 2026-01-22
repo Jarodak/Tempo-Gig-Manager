@@ -32,6 +32,9 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
   const [curfewTime, setCurfewTime] = useState('23:00');
   const [paymentType, setPaymentType] = useState<PaymentType>(PaymentType.FLAT_FEE);
   const [budget, setBudget] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [estimatedHours, setEstimatedHours] = useState('');
+  const [inKindDescription, setInKindDescription] = useState('');
   const [esrbRating, setEsrbRating] = useState<EsrbRating>(EsrbRating.FAMILY);
   const [equipmentProvided, setEquipmentProvided] = useState<string[]>([]);
   const [requirements, setRequirements] = useState('');
@@ -189,8 +192,15 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
       newErrors.date = 'Date is required';
     }
     
-    if (paymentType !== PaymentType.TIPS && !budget) {
+    // Validate payment based on type
+    if (paymentType === PaymentType.FLAT_FEE && !budget) {
       newErrors.budget = 'Payment amount is required';
+    }
+    if (paymentType === PaymentType.HOURLY && !hourlyRate) {
+      newErrors.hourlyRate = 'Hourly rate is required';
+    }
+    if (paymentType === PaymentType.IN_KIND && !inKindDescription.trim()) {
+      newErrors.inKind = 'Please describe what you\'re offering';
     }
     
     if (equipmentProvided.length === 0) {
@@ -217,7 +227,13 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
         location: 'NYC',
         date,
         time: loadInTime,
-        price: paymentType === PaymentType.TIPS ? 'Tips Only' : `$${budget}`,
+        price: paymentType === PaymentType.TIPS 
+          ? 'Tips Only' 
+          : paymentType === PaymentType.HOURLY 
+            ? `$${hourlyRate}/hr` 
+            : paymentType === PaymentType.IN_KIND 
+              ? 'In-Kind' 
+              : `$${budget}`,
         genre: genres,
         isVerified: true,
         image: '',
@@ -362,16 +378,20 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Payment Type</label>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { value: PaymentType.TIPS, label: 'Tips Only', icon: 'volunteer_activism' },
-              { value: PaymentType.HOURLY, label: 'Hourly', icon: 'schedule' },
-              { value: PaymentType.FLAT_FEE, label: 'Flat Fee', icon: 'payments' },
-              { value: PaymentType.IN_KIND, label: 'In-Kind', icon: 'handshake' },
+              { value: PaymentType.TIPS, label: 'Tips Only', icon: 'volunteer_activism', desc: 'Artist keeps all tips' },
+              { value: PaymentType.HOURLY, label: 'Hourly', icon: 'schedule', desc: 'Pay per hour worked' },
+              { value: PaymentType.FLAT_FEE, label: 'Flat Fee', icon: 'payments', desc: 'Fixed amount for gig' },
+              { value: PaymentType.IN_KIND, label: 'In-Kind', icon: 'handshake', desc: 'Non-cash compensation' },
             ].map(pt => (
               <button
                 key={pt.value}
                 onClick={() => {
                   setPaymentType(pt.value);
-                  if (pt.value === PaymentType.TIPS) setBudget('');
+                  if (pt.value === PaymentType.TIPS) {
+                    setBudget('');
+                    setHourlyRate('');
+                    setEstimatedHours('');
+                  }
                 }}
                 className={`p-4 rounded-2xl border text-left transition-all ${
                   paymentType === pt.value
@@ -381,8 +401,131 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
               >
                 <span className="material-symbols-outlined text-2xl mb-2">{pt.icon}</span>
                 <div className="font-black text-sm">{pt.label}</div>
+                <div className="text-[9px] mt-1 opacity-70">{pt.desc}</div>
               </button>
             ))}
+          </div>
+
+          {/* Payment Details based on type */}
+          <div className="bg-surface-dark rounded-[2rem] border border-border-dark p-6 space-y-4 animate-in fade-in duration-300">
+            {paymentType === PaymentType.TIPS && (
+              <div className="text-center py-4">
+                <div className="size-16 bg-primary/10 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-primary text-3xl">volunteer_activism</span>
+                </div>
+                <h4 className="text-white font-black text-lg">Tips Only</h4>
+                <p className="text-slate-400 text-sm mt-2">Artist will perform for tips collected during the gig.</p>
+                <p className="text-accent-cyan text-[10px] font-black uppercase tracking-widest mt-4">No upfront payment required</p>
+              </div>
+            )}
+
+            {paymentType === PaymentType.FLAT_FEE && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="material-symbols-outlined text-primary">payments</span>
+                  <span className="text-white font-black">Flat Fee Payment</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total Amount</label>
+                  <div className={`flex items-center bg-background-dark border rounded-2xl px-5 h-16 transition-all ${errors.budget ? 'border-red-500/50' : 'border-white/5'}`}>
+                    <span className="font-black text-xl text-slate-500 mr-2">$</span>
+                    <input 
+                      value={budget}
+                      onChange={(e) => {
+                        setBudget(e.target.value);
+                        if (errors.budget) setErrors({ ...errors, budget: undefined });
+                      }}
+                      className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-2xl text-white" 
+                      placeholder="500" 
+                      type="number" 
+                    />
+                  </div>
+                  {errors.budget && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{errors.budget}</p>}
+                </div>
+              </div>
+            )}
+
+            {paymentType === PaymentType.HOURLY && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="material-symbols-outlined text-primary">schedule</span>
+                  <span className="text-white font-black">Hourly Payment</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Hourly Rate</label>
+                    <div className={`flex items-center bg-background-dark border rounded-2xl px-5 h-16 transition-all ${errors.hourlyRate ? 'border-red-500/50' : 'border-white/5'}`}>
+                      <span className="font-black text-lg text-slate-500 mr-2">$</span>
+                      <input 
+                        value={hourlyRate}
+                        onChange={(e) => {
+                          setHourlyRate(e.target.value);
+                          if (errors.hourlyRate) setErrors({ ...errors, hourlyRate: undefined });
+                        }}
+                        className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white" 
+                        placeholder="50" 
+                        type="number" 
+                      />
+                      <span className="text-slate-500 text-sm font-bold">/hr</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Est. Hours</label>
+                    <div className="flex items-center bg-background-dark border border-white/5 rounded-2xl px-5 h-16">
+                      <input 
+                        value={estimatedHours}
+                        onChange={(e) => setEstimatedHours(e.target.value)}
+                        className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white" 
+                        placeholder="4" 
+                        type="number" 
+                      />
+                      <span className="text-slate-500 text-sm font-bold">hrs</span>
+                    </div>
+                  </div>
+                </div>
+                {hourlyRate && estimatedHours && (
+                  <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-slate-400 text-sm">Estimated Total</span>
+                    <span className="text-primary font-black text-xl">${(parseFloat(hourlyRate) * parseFloat(estimatedHours)).toFixed(2)}</span>
+                  </div>
+                )}
+                {errors.hourlyRate && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{errors.hourlyRate}</p>}
+              </div>
+            )}
+
+            {paymentType === PaymentType.IN_KIND && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="material-symbols-outlined text-primary">handshake</span>
+                  <span className="text-white font-black">In-Kind Compensation</span>
+                </div>
+                <p className="text-slate-400 text-sm">Describe what you're offering instead of cash payment:</p>
+                <div className="space-y-2">
+                  <textarea 
+                    value={inKindDescription}
+                    onChange={(e) => {
+                      setInKindDescription(e.target.value);
+                      if (errors.inKind) setErrors({ ...errors, inKind: undefined });
+                    }}
+                    className={`w-full bg-background-dark border rounded-2xl p-5 font-medium text-white resize-none h-32 transition-all ${errors.inKind ? 'border-red-500/50' : 'border-white/5'}`}
+                    placeholder="e.g., Free meals & drinks, exposure to 500+ audience, professional recording of set, merchandise table space..."
+                  />
+                  {errors.inKind && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{errors.inKind}</p>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {['Free Food & Drinks', 'Recording', 'Merch Table', 'Promotion'].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setInKindDescription(prev => prev ? `${prev}, ${tag}` : tag)}
+                      className="px-3 py-1.5 bg-background-dark border border-white/10 rounded-full text-xs font-bold text-slate-400 hover:border-primary hover:text-primary transition-all"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -485,43 +628,22 @@ const CreateGig: React.FC<CreateGigProps> = ({ navigate }) => {
           <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Formatted for Artist EPK view</p>
         </div>
 
-        {/* Budget & Genre */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Payment Amount</label>
-            <div className={`flex items-center bg-surface-dark border rounded-2xl px-5 h-16 shadow-lg transition-all ${paymentType === PaymentType.TIPS ? 'opacity-50 grayscale cursor-not-allowed' : ''} ${errors.budget ? 'border-red-500/50 ring-2 ring-red-500/10' : 'border-border-dark border-none'}`}>
-              <span className={`font-black text-lg mr-2 ${errors.budget ? 'text-red-500' : 'text-slate-500'}`}>$</span>
-              <input 
-                value={paymentType === PaymentType.TIPS ? '0.00' : budget}
-                disabled={paymentType === PaymentType.TIPS}
-                onChange={(e) => {
-                  setBudget(e.target.value);
-                  if (errors.budget) setErrors({ ...errors, budget: undefined });
-                }}
-                className="bg-transparent border-none focus:ring-0 w-full p-0 font-black text-xl text-white disabled:text-slate-500" 
-                placeholder="0.00" 
-                type="number" 
-              />
-            </div>
-            {paymentType === PaymentType.TIPS && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Tips Only Enabled</p>}
-            {errors.budget && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest ml-1 animate-in fade-in slide-in-from-left-2">{errors.budget}</p>}
+        {/* ESRB Rating */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Age Rating</label>
+          <div className="relative">
+            <select
+              value={esrbRating}
+              onChange={(e) => setEsrbRating(e.target.value as EsrbRating)}
+              className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white"
+            >
+              <option value={EsrbRating.FAMILY}>Family Friendly</option>
+              <option value={EsrbRating.ADULTS_ONLY}>21+</option>
+              <option value={EsrbRating.NSFW}>NSFW</option>
+            </select>
+            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">unfold_more</span>
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">ESRB Rating</label>
-            <div className="relative">
-              <select
-                value={esrbRating}
-                onChange={(e) => setEsrbRating(e.target.value as EsrbRating)}
-                className="w-full rounded-2xl border-none bg-surface-dark h-16 px-5 focus:ring-2 focus:ring-primary/50 appearance-none text-base font-black shadow-lg text-white"
-              >
-                <option value={EsrbRating.FAMILY}>Family Friendly</option>
-                <option value={EsrbRating.ADULTS_ONLY}>21+</option>
-                <option value={EsrbRating.NSFW}>NSFW</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">unfold_more</span>
-            </div>
-            {autofillApplied && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Autofilled from venue</p>}
-          </div>
+          {autofillApplied && <p className="text-accent-cyan text-[9px] font-black uppercase tracking-widest ml-1">Autofilled from venue</p>}
         </div>
 
         {/* Genre Multi-Select */}
